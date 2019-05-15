@@ -1,11 +1,14 @@
 package Http
 
 import (
-	"github.com/larisgo/larisgo/Foundation/Application"
+	"github.com/larisgo/larisgo/Contracts/Http"
+	"github.com/larisgo/larisgo/Foundation"
 )
 
 type Kernel struct {
-	app *Application
+	app *Foundation.Application
+
+	Http.Kernel
 }
 
 /**
@@ -18,6 +21,14 @@ type Kernel struct {
 func (this *Kernel) Terminate(request interface{}, response interface{}) {
 	this.app.Terminate()
 }
-func Kernel() *Kernel {
-	return &Kernel{}
+
+func (this *Kernel) GetApplication() *Foundation.Application {
+	return this.app
+}
+
+func NewKernel(app *Foundation.Application) (kernel *Kernel) {
+	kernel = &Kernel{}
+	kernel.app = app
+
+	return kernel
 }

@@ -148,7 +148,7 @@ func (this *Application) Terminate() {
 	// }
 }
 
-func Application(basePath string) (app *Application) {
+func NewApplication(basePath string) (app *Application) {
 
 	app = &Application{}
 

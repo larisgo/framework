@@ -5,6 +5,13 @@ type Container struct {
 	 * The current globally available container (if any).
 	 */
 	instance interface{}
+
+	/**
+	 * The container's bindings.
+	 *
+	 * @var slice
+	 */
+	bindings map[string]interface{}
 }
 
 /**
@@ -28,6 +35,10 @@ func (this *Container) Singleton(abstract string, concrete ...interface{}) {
  * @return void
  */
 func (this *Container) Bind(abstract string, concrete interface{}, shared bool) {
+	this.bindings[abstract] = []interface{}{
+		concrete,
+		shared,
+	}
 }
 
 /**
@@ -37,7 +48,7 @@ func (this *Container) Bind(abstract string, concrete interface{}, shared bool) 
  * @param  slice  parameters
  * @return mixed
  */
-func (this *Container) Make(abstract string, parameters ...interface{}) interface{} {
+func (this *Container) Make(abstract interface{}, parameters ...interface{}) interface{} {
 	return this.Resolve(abstract, parameters)
 }
 
@@ -48,10 +59,10 @@ func (this *Container) Make(abstract string, parameters ...interface{}) interfac
  * @param  array  parameters
  * @return mixed
  */
-func (this *Container) Resolve(abstract string, parameters ...interface{}) interface{} {
-	return nil
+func (this *Container) Resolve(abstract interface{}, parameters ...interface{}) interface{} {
+	return abstract
 }
 
-func Container() *Container {
+func NewContainer() *Container {
 	return &Container{}
 }
