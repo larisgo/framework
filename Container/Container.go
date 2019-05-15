@@ -29,3 +29,29 @@ func (this *Container) Singleton(abstract string, concrete ...interface{}) {
  */
 func (this *Container) Bind(abstract string, concrete interface{}, shared bool) {
 }
+
+/**
+ * Resolve the given type from the container.
+ *
+ * @param  string  abstract
+ * @param  slice  parameters
+ * @return mixed
+ */
+func (this *Container) Make(abstract string, parameters ...interface{}) interface{} {
+	return this.Resolve(abstract, parameters)
+}
+
+/**
+ * Resolve the given type from the container.
+ *
+ * @param  string  abstract
+ * @param  array  parameters
+ * @return mixed
+ */
+func (this *Container) Resolve(abstract string, parameters ...interface{}) interface{} {
+	return nil
+}
+
+func Container() *Container {
+	return &Container{}
+}

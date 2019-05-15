@@ -9,9 +9,7 @@ import (
 
 const VERSION = "1.0.0"
 
-type App struct {
-	*Container.Container
-
+type Application struct {
 	/**
 	 * the larisgo framework version.
 	 *
@@ -32,6 +30,8 @@ type App struct {
 	 * @var string
 	 */
 	appPath string
+
+	*Container.Container
 }
 
 /**
@@ -39,7 +39,7 @@ type App struct {
  *
  * @return string
  */
-func (this *App) Version() string {
+func (this *Application) Version() string {
 	return this.version
 }
 
@@ -49,7 +49,7 @@ func (this *App) Version() string {
  * @param  string  basePath
  * @return $this
  */
-func (this *App) SetBasePath(basePath string) *App {
+func (this *Application) SetBasePath(basePath string) *Application {
 	this.basePath = strings.TrimRight(basePath, `\/`)
 	return this
 }
@@ -60,7 +60,7 @@ func (this *App) SetBasePath(basePath string) *App {
  * @param  string  path
  * @return string
  */
-func (this *App) Path(_path ...string) string {
+func (this *Application) Path(_path ...string) string {
 	_path = append(_path, "")
 
 	var appPath string
@@ -84,7 +84,7 @@ func (this *App) Path(_path ...string) string {
  * @param  string  path
  * @return this
  */
-func (this *App) UseAppPath(_path ...string) *App {
+func (this *Application) UseAppPath(_path ...string) *Application {
 	_path = append(_path, "")
 	this.appPath = _path[0]
 	return this
@@ -96,7 +96,7 @@ func (this *App) UseAppPath(_path ...string) *App {
  * @param  string  path Optionally, a path to append to the base path
  * @return string
  */
-func (this *App) BasePath(_path ...string) string {
+func (this *Application) BasePath(_path ...string) string {
 	_path = append(_path, "")
 	if this.appPath == "" {
 		return filepath.Clean(path.Join(this.basePath, _path[0]))
@@ -110,7 +110,7 @@ func (this *App) BasePath(_path ...string) string {
  * @param  string  path Optionally, a path to append to the bootstrap path
  * @return string
  */
-func (this *App) BootstrapPath(_path ...string) string {
+func (this *Application) BootstrapPath(_path ...string) string {
 	_path = append(_path, "")
 	return filepath.Clean(path.Join(this.basePath, "bootstrap", _path[0]))
 }
@@ -121,7 +121,7 @@ func (this *App) BootstrapPath(_path ...string) string {
  * @param  string  path Optionally, a path to append to the config path
  * @return string
  */
-func (this *App) ConfigPath(_path ...string) string {
+func (this *Application) ConfigPath(_path ...string) string {
 	_path = append(_path, "")
 	return filepath.Clean(path.Join(this.basePath, "config", _path[0]))
 }
@@ -132,14 +132,25 @@ func (this *App) ConfigPath(_path ...string) string {
  * @param  string  path Optionally, a path to append to the database path
  * @return string
  */
-func (this *App) DatabasePath(_path ...string) string {
+func (this *Application) DatabasePath(_path ...string) string {
 	_path = append(_path, "")
 	return filepath.Clean(path.Join(this.basePath, "database", _path[0]))
 }
 
-func Application(basePath string) (app *App) {
+/**
+ * Terminate the application.
+ *
+ * @return void
+ */
+func (this *Application) Terminate() {
+	// foreach (this.terminatingCallbacks as $terminating) {
+	//     $this->call($terminating);
+	// }
+}
 
-	app = &App{}
+func Application(basePath string) (app *Application) {
+
+	app = &Application{}
 
 	app.version = VERSION
 
