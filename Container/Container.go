@@ -14,6 +14,11 @@ type Container struct {
 	bindings map[string]interface{}
 }
 
+func NewContainer() (_Container *Container) {
+	_Container = &Container{}
+	return _Container
+}
+
 /**
  * Register a shared binding in the container.
  *
@@ -61,8 +66,4 @@ func (this *Container) Make(abstract interface{}, parameters ...interface{}) int
  */
 func (this *Container) Resolve(abstract interface{}, parameters ...interface{}) interface{} {
 	return abstract
-}
-
-func NewContainer() *Container {
-	return &Container{}
 }

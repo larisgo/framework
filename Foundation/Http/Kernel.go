@@ -3,12 +3,20 @@ package Http
 import (
 	"github.com/larisgo/larisgo/Contracts/Http"
 	"github.com/larisgo/larisgo/Foundation"
+	"github.com/larisgo/larisgo/Routing"
 )
 
 type Kernel struct {
 	app *Foundation.Application
 
 	Http.Kernel
+}
+
+func NewKernel(app *Foundation.Application, router *Routing.Router) (_Kernel *Kernel) {
+	_Kernel = &Kernel{}
+	_Kernel.app = app
+
+	return _Kernel
 }
 
 /**
@@ -24,11 +32,4 @@ func (this *Kernel) Terminate(request interface{}, response interface{}) {
 
 func (this *Kernel) GetApplication() *Foundation.Application {
 	return this.app
-}
-
-func NewKernel(app *Foundation.Application) (kernel *Kernel) {
-	kernel = &Kernel{}
-	kernel.app = app
-
-	return kernel
 }

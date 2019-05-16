@@ -43,6 +43,19 @@ func (this *Application) Version() string {
 	return this.version
 }
 
+func NewApplication(basePath string) (_Application *Application) {
+
+	_Application = &Application{}
+
+	_Application.version = VERSION
+
+	if basePath != "" {
+		_Application.SetBasePath(basePath)
+	}
+
+	return _Application
+}
+
 /**
  * Set the base path for the application.
  *
@@ -146,17 +159,4 @@ func (this *Application) Terminate() {
 	// foreach (this.terminatingCallbacks as $terminating) {
 	//     $this->call($terminating);
 	// }
-}
-
-func NewApplication(basePath string) (app *Application) {
-
-	app = &Application{}
-
-	app.version = VERSION
-
-	if basePath != "" {
-		app.SetBasePath(basePath)
-	}
-
-	return app
 }
