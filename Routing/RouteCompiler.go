@@ -5,6 +5,9 @@ import (
 	"regexp"
 )
 
+type CompiledRoute struct {
+}
+
 type RouteCompiler struct {
 	route *Route
 }
@@ -27,10 +30,11 @@ func NewRouteCompiler(route *Route) *RouteCompiler {
 func (this *RouteCompiler) Compile() {
 	optionals := this.getOptionalParameters()
 	uri := regexp.MustCompile(`\{(\w+?)\?\}`).ReplaceAllString(this.route.Uri(), `{$1}`)
+	fmt.Println(optionals)
 	fmt.Println(uri)
 
 	// return (
-	//     new SymfonyRoute($uri, $optionals, $this->route->wheres, ['utf8' => true], $this->route->getDomain() ?: '')
+	NewSymfonyRoute(uri, optionals, map[string]string{}, map[string]interface{}{"utf8": true}, this.route.GetDomain(), map[string]bool{}, []string{}, "")
 	// )->compile();
 }
 
