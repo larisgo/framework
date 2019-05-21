@@ -7,16 +7,25 @@ import (
 )
 
 type Kernel struct {
-	app *Foundation.Application
-
+	app    *Foundation.Application
+	router *Routing.Router
 	Http.Kernel
 }
 
-func NewKernel(app *Foundation.Application, router *Routing.Router) (_Kernel *Kernel) {
-	_Kernel = &Kernel{}
-	_Kernel.app = app
+func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kernel) {
+	this = &Kernel{}
+	this.app = app
+	this.router = router
 
-	return _Kernel
+	return this
+}
+
+func (this *Kernel) Handle() {
+
+}
+
+func (this *Kernel) SendRequestThroughRouter() *Routing.Router {
+	return this.router
 }
 
 /**

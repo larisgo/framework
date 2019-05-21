@@ -43,17 +43,17 @@ func (this *Application) Version() string {
 	return this.version
 }
 
-func NewApplication(basePath string) (_Application *Application) {
+func NewApplication(basePath string) (this *Application) {
 
-	_Application = &Application{}
+	this = &Application{}
 
-	_Application.version = VERSION
+	this.version = VERSION
 
 	if basePath != "" {
-		_Application.SetBasePath(basePath)
+		this.SetBasePath(basePath)
 	}
 
-	return _Application
+	return this
 }
 
 /**

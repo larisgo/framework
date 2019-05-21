@@ -1,19 +1,19 @@
 package Routing
 
 type RouteCollection struct {
-	routes     []*Route
-	allRoutes  []*Route
-	nameList   []*Route
-	actionList []*Route
+	routes     map[string]map[string]*Route
+	allRoutes  map[string]*Route
+	nameList   map[string]*Route
+	actionList map[string]*Route
 }
 
-func NewRouteCollection() (_RouteCollection *RouteCollection) {
-	_RouteCollection = &RouteCollection{}
-	_RouteCollection.routes = make([]*Route, 0)
-	_RouteCollection.allRoutes = make([]*Route, 0)
-	_RouteCollection.nameList = make([]*Route, 0)
-	_RouteCollection.actionList = make([]*Route, 0)
-	return _RouteCollection
+func NewRouteCollection() (this *RouteCollection) {
+	this = &RouteCollection{}
+	this.routes = make(map[string]map[string]*Route)
+	this.allRoutes = make(map[string]*Route)
+	this.nameList = make(map[string]*Route)
+	this.actionList = make(map[string]*Route)
+	return this
 }
 
 /**
@@ -37,13 +37,18 @@ func (this *RouteCollection) Add(route *Route) *Route {
  * @return void
  */
 func (this *RouteCollection) addToCollections(route *Route) {
-	// $domainAndUri = $route->getDomain().$route->uri();
-
-	// foreach ($route->methods() as $method) {
-	//     $this->routes[$method][$domainAndUri] = $route;
-	// }
-
-	// $this->allRoutes[$method.$domainAndUri] = $route;
+	domainAndUri := route.GetDomain() + route.Uri()
+	var method string
+	for _, method = range route.Methods() {
+		if _, ok := this.routes[method]; ok {
+			this.routes[method][domainAndUri] = route
+		} else {
+			this.routes[method] = map[string]*Route{
+				domainAndUri: route,
+			}
+		}
+	}
+	this.allRoutes[method+domainAndUri] = route
 }
 
 /**
@@ -53,20 +58,20 @@ func (this *RouteCollection) addToCollections(route *Route) {
  * @return void
  */
 func (this *RouteCollection) addLookups(route *Route) {
-	// // If the route has a name, we will add it to the name look-up table so that we
-	// // will quickly be able to find any route associate with a name and not have
-	// // to iterate through every route every time we need to perform a look-up.
-	// if ($name = $route->getName()) {
-	//     $this->nameList[$name] = $route;
-	// }
+	// If the route has a name, we will add it to the name look-up table so that we
+	// will quickly be able to find any route associate with a name and not have
+	// to iterate through every route every time we need to perform a look-up.
+	if name := route.GetName(); name != "" {
+		this.nameList[name] = route
+	}
 
-	// // When the route is routing to a controller we will also store the action that
-	// // is used by the route. This will let us reverse route to controllers while
-	// // processing a request and easily generate URLs to the given controllers.
-	// $action = $route->getAction();
+	// When the route is routing to a controller we will also store the action that
+	// is used by the route. This will let us reverse route to controllers while
+	// processing a request and easily generate URLs to the given controllers.
+	// action := route.Action
 
-	// if (isset($action['controller'])) {
-	//     $this->addToActionList($action, $route);
+	// if action.Controller != "" {
+	// 	this.addToActionList(action, route)
 	// }
 }
 
@@ -78,5 +83,106 @@ func (this *RouteCollection) addLookups(route *Route) {
  * @return void
  */
 func (this *RouteCollection) addToActionList(action Action, route *Route) {
-	// $this->actionList[trim($action['controller'], '\\')] = $route;
+	// this.actionList[action.Controller] = route
+}
+
+/**
+ * Refresh the name look-up table.
+ *
+ * This is done in case any names are fluently defined or if routes are overwritten.
+ *
+ * @return void
+ */
+func (this *RouteCollection) RefreshNameLookups() {
+	this.nameList = make(map[string]*Route, 0)
+	for _, route := range this.allRoutes {
+		if name := route.GetName(); name != "" {
+			this.nameList[name] = route
+		}
+	}
+}
+
+/**
+ * Find the first route matching a given request.
+ *
+ * @param  Http\Request  $request
+ * @return Routing\Route
+ *
+ * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+ */
+func (this *RouteCollection) Match() {
+	// routes := this.Get("GET")
+
+	// First, we will see if we can find a matching route for this current request
+	// method. If we can, great, we can just return it so that it can be called
+	// by the consumer. Otherwise we will check for routes with another verb.
+	// route := this.matchAgainstRoutes(routes);
+
+	// if (! is_null($route)) {
+	//     return $route->bind($request);
+	// }
+
+	// // If no route was found we will now check if a matching route is specified by
+	// // another HTTP verb. If it is we will need to throw a MethodNotAllowed and
+	// // inform the user agent of which HTTP verb it should use for this route.
+	// $others = $this->checkForAlternateVerbs($request);
+
+	// if (count($others) > 0) {
+	//     return $this->getRouteForMethods($request, $others);
+	// }
+
+	// throw new NotFoundHttpException;
+}
+
+/**
+ * Get routes from the collection by method.
+ *
+ * @param  string  method
+ * @return map[string]*Route
+ */
+func (this *RouteCollection) Get(method ...string) map[string]*Route {
+	if len(method) > 0 {
+		if routes, ok := this.routes[method[0]]; ok {
+			return routes
+		} else {
+			return map[string]*Route{}
+		}
+	}
+	return this.GetRoutes()
+}
+
+/**
+ * Get all of the routes in the collection.
+ *
+ * @return map[string]*Route
+ */
+func (this *RouteCollection) GetRoutes() map[string]*Route {
+	return this.allRoutes
+}
+
+/**
+ * Get all of the routes keyed by their HTTP verb / method.
+ *
+ * @return map[string]*Route
+ */
+func (this *RouteCollection) GetRoutesByMethod() map[string]map[string]*Route {
+	return this.routes
+}
+
+/**
+ * Get all of the routes keyed by their name.
+ *
+ * @return map[string]*Route
+ */
+func (this *RouteCollection) GetRoutesByName() map[string]*Route {
+	return this.nameList
+}
+
+/**
+ * Count the number of items in the collection.
+ *
+ * @return int
+ */
+func (this *RouteCollection) Count() int {
+	return len(this.GetRoutes())
 }

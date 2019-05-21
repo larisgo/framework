@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-type Action func(http.ResponseWriter, *http.Request, Args)
+type Action func()
 
 type Args map[string]string
 
@@ -25,59 +25,59 @@ type Router struct {
 	PanicHandler          func(http.ResponseWriter, *http.Request, interface{})
 }
 
-func NewRouter() (_Router *Router) {
-	_Router = &Router{
+func NewRouter() (this *Router) {
+	this = &Router{
 		RedirectTrailingSlash: true,
 		RedirectFixedPath:     true,
 	}
-	_Router.routes = NewRouteCollection()
-	return _Router
+	this.routes = NewRouteCollection()
+	return this
 }
 
 var _ http.Handler = NewRouter()
 
-func (this *Router) Get(uri string, action Action) {
-	this.AddRoute([]string{"GET", "HEAD"}, uri, action)
+func (this *Router) Get(uri string, action func()) *Route {
+	return this.AddRoute([]string{"GET", "HEAD"}, uri, Action(action))
 }
 
-func (this *Router) Post(uri string, action Action) {
-	this.AddRoute([]string{"POST"}, uri, action)
+func (this *Router) Post(uri string, action func()) *Route {
+	return this.AddRoute([]string{"POST"}, uri, Action(action))
 }
 
-func (this *Router) Put(uri string, action Action) {
-	this.AddRoute([]string{"PUT"}, uri, action)
+func (this *Router) Put(uri string, action func()) *Route {
+	return this.AddRoute([]string{"PUT"}, uri, Action(action))
 }
 
-func (this *Router) Patch(uri string, action Action) {
-	this.AddRoute([]string{"PATCH"}, uri, action)
+func (this *Router) Patch(uri string, action func()) *Route {
+	return this.AddRoute([]string{"PATCH"}, uri, Action(action))
 }
 
-func (this *Router) Delete(uri string, action Action) {
-	this.AddRoute([]string{"DELETE"}, uri, action)
+func (this *Router) Delete(uri string, action func()) *Route {
+	return this.AddRoute([]string{"DELETE"}, uri, Action(action))
 }
 
-func (this *Router) Options(uri string, action Action) {
-	this.AddRoute([]string{"OPTIONS"}, uri, action)
+func (this *Router) Options(uri string, action func()) *Route {
+	return this.AddRoute([]string{"OPTIONS"}, uri, Action(action))
 }
 
-func (this *Router) Head(uri string, action Action) {
-	this.AddRoute([]string{"HEAD"}, uri, action)
+func (this *Router) Head(uri string, action func()) *Route {
+	return this.AddRoute([]string{"HEAD"}, uri, Action(action))
 }
 
-func (this *Router) Any(uri string, action Action) {
-	this.AddRoute([]string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}, uri, action)
+func (this *Router) Any(uri string, action func()) *Route {
+	return this.AddRoute([]string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}, uri, Action(action))
 }
 
-func (this *Router) Match(methods []string, uri string, action Action) *Route {
+func (this *Router) Match(methods []string, uri string, action func()) *Route {
 	return this.AddRoute(methods, uri, action)
 }
 
-func (this *Router) AddRoute(methods []string, uri string, action Action) *Route {
-	return this.routes.Add(this.createRoute(methods, uri, action))
+func (this *Router) AddRoute(methods []string, uri string, action func()) *Route {
+	return this.routes.Add(this.createRoute(methods, uri, Action(action)))
 }
 
 func (this *Router) createRoute(methods []string, uri string, action Action) *Route {
-	return NewRoute(methods, this.prefix(uri), action)
+	return NewRoute(methods, this.prefix(uri), action).SetRouter(this)
 }
 
 /**
@@ -91,6 +91,10 @@ func (this *Router) prefix(uri string) string {
 		return prefix
 	}
 	return "/"
+}
+
+func (this *Router) GetRoutes() *RouteCollection {
+	return this.routes
 }
 
 // HandlerFunc is an adapter which allows the usage of an http.HandlerFunc as a
