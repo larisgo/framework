@@ -1,7 +1,5 @@
 package Container
 
-import "fmt"
-
 type Container struct {
 	/**
 	 * The current globally available container (if any).
@@ -56,7 +54,7 @@ func (this *Container) Bind(abstract string, concrete interface{}, shared bool) 
  * @return mixed
  */
 func (this *Container) Make(abstract interface{}, parameters ...interface{}) interface{} {
-	fmt.Println(this)
+	// fmt.Println(this)
 	return this.Resolve(abstract, parameters)
 }
 

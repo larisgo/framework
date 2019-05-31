@@ -39,7 +39,7 @@ func (this *RouteCollection) Add(route *Route) *Route {
 func (this *RouteCollection) addToCollections(route *Route) {
 	domainAndUri := route.GetDomain() + route.Uri()
 	var method string
-	for _, method = range route.Methods() {
+	for method, _ = range route.Methods() {
 		if _, ok := this.routes[method]; ok {
 			this.routes[method][domainAndUri] = route
 		} else {
@@ -113,26 +113,101 @@ func (this *RouteCollection) RefreshNameLookups() {
 func (this *RouteCollection) Match() {
 	// routes := this.Get("GET")
 
-	// First, we will see if we can find a matching route for this current request
-	// method. If we can, great, we can just return it so that it can be called
-	// by the consumer. Otherwise we will check for routes with another verb.
-	// route := this.matchAgainstRoutes(routes);
+	// // First, we will see if we can find a matching route for this current request
+	// // method. If we can, great, we can just return it so that it can be called
+	// // by the consumer. Otherwise we will check for routes with another verb.
+	// route := this.matchAgainstRoutes(routes, "1", true)
 
-	// if (! is_null($route)) {
-	//     return $route->bind($request);
+	// if route != nil {
+	// 	// return route.Bind("request")
 	// }
 
-	// // If no route was found we will now check if a matching route is specified by
-	// // another HTTP verb. If it is we will need to throw a MethodNotAllowed and
-	// // inform the user agent of which HTTP verb it should use for this route.
-	// $others = $this->checkForAlternateVerbs($request);
+	// If no route was found we will now check if a matching route is specified by
+	// another HTTP verb. If it is we will need to throw a MethodNotAllowed and
+	// inform the user agent of which HTTP verb it should use for this route.
+	// others := this.checkForAlternateVerbs("request")
 
 	// if (count($others) > 0) {
-	//     return $this->getRouteForMethods($request, $others);
+	//     return this.getRouteForMethods($request, $others);
 	// }
 
 	// throw new NotFoundHttpException;
 }
+
+/**
+ * Determine if a route in the array matches the request.
+ *
+ * @param  array  $routes
+ * @param  \Illuminate\Http\Request  $request
+ * @param  bool  $includingMethod
+ * @return \Illuminate\Routing\Route|null
+ */
+func (this *RouteCollection) matchAgainstRoutes(routes map[string]*Route, request string, includingMethod bool) *Route {
+	_fallbacks := []*Route{}
+	_routes := []*Route{}
+	for _, route := range routes {
+		if route.IsFallback {
+			_fallbacks = append(_fallbacks, route)
+		} else {
+			_routes = append(_routes, route)
+		}
+	}
+	_routes = append(_routes, _fallbacks...)
+	for _, route := range _routes {
+		if route.Matches(request, includingMethod) {
+			return route
+		}
+	}
+	return nil
+}
+
+/**
+ * Determine if any routes match on another HTTP verb.
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @return array
+ */
+/**
+  protected function checkForAlternateVerbs($request)
+  {
+      $methods = array_diff(Router::$verbs, [$request->getMethod()]);
+
+      // Here we will spin through all verbs except for the current request verb and
+      // check to see if any routes respond to them. If they do, we will return a
+      // proper error response with the correct headers on the response string.
+      $others = [];
+
+      foreach ($methods as $method) {
+          if (! is_null($this->matchAgainstRoutes($this->get($method), $request, false))) {
+              $others[] = $method;
+          }
+      }
+
+      return $others;
+  }
+*/
+
+/**
+ * Get a route (if necessary) that responds when other available methods are present.
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @param  array  $methods
+ * @return \Illuminate\Routing\Route
+ *
+ * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
+ */
+/**
+  protected function getRouteForMethods($request, array $methods)
+  {
+      if ($request->method() === 'OPTIONS') {
+          return (new Route('OPTIONS', $request->path(), function () use ($methods) {
+              return new Response('', 200, ['Allow' => implode(',', $methods)]);
+          }))->bind($request);
+      }
+
+      $this->methodNotAllowed($methods);
+  }
+*/
 
 /**
  * Get routes from the collection by method.
@@ -145,10 +220,34 @@ func (this *RouteCollection) Get(method ...string) map[string]*Route {
 		if routes, ok := this.routes[method[0]]; ok {
 			return routes
 		} else {
-			return map[string]*Route{}
+			return nil
 		}
 	}
 	return this.GetRoutes()
+}
+
+/**
+ * Determine if the route collection contains a given named route.
+ *
+ * @param  string  name
+ * @return bool
+ */
+func (this *RouteCollection) HasNamedRoute(name string) bool {
+	_, ok := this.nameList[name]
+	return ok
+}
+
+/**
+ * Get a route instance by its name.
+ *
+ * @param  string  name
+ * @return Routing\Route|nil
+ */
+func (this *RouteCollection) GetByName(name string) *Route {
+	if route, ok := this.nameList[name]; ok {
+		return route
+	}
+	return nil
 }
 
 /**

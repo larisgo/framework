@@ -5,18 +5,20 @@ import (
 	"strings"
 )
 
+var Validators []ValidatorInterface
+
 type Route struct {
 	uri        string
-	methods    []string
+	methods    map[string]bool
 	Action     *routeAction
 	IsFallback bool
-	// compiled
-	router *Router
-	http   bool
-	https  bool
+	compiled   *CompiledRoute
+	router     *Router
+	http       bool
+	https      bool
 }
 
-func NewRoute(methods []string, uri string, action Action) (this *Route) {
+func NewRoute(methods map[string]bool, uri string, action Action) (this *Route) {
 	this = &Route{}
 	this.uri = uri
 	this.methods = methods
@@ -51,8 +53,7 @@ func (this *Route) Run() {
  * @return mixed
  */
 func (this *Route) runCallable() {
-	callable := this.Action.Uses
-	callable()
+	this.Action.Uses()
 	return
 }
 
@@ -63,18 +64,17 @@ func (this *Route) runCallable() {
  * @param  bool  $includingMethod
  * @return bool
  */
-func (this *Route) Matches(request, includingMethod bool) bool {
+func (this *Route) Matches(request string, includingMethod bool) bool {
 	this.compileRoute()
 
-	// foreach ($this->getValidators() as $validator) {
-	//     if (! $includingMethod && $validator instanceof MethodValidator) {
-	//         continue;
-	//     }
-
-	//     if (! $validator->matches($this, $request)) {
-	//         return false;
-	//     }
-	// }
+	for _, validator := range this.GetValidators() {
+		if _, ok := validator.(MethodValidator); !includingMethod && ok {
+			continue
+		}
+		if !validator.matches(this, request) {
+			return false
+		}
+	}
 
 	return true
 }
@@ -84,14 +84,30 @@ func (this *Route) Matches(request, includingMethod bool) bool {
  *
  * @return \Symfony\Component\Routing\CompiledRoute
  */
-func (this *Route) compileRoute() {
-	NewRouteCompiler(this).Compile()
-	// if this.compiled {
-	// this.compiled = NewRouteCompiler(this)->compile()
-	// }
+func (this *Route) compileRoute() *CompiledRoute {
+	if this.compiled == nil {
+		this.compiled = NewRouteCompiler(this).Compile()
+	}
 
-	// return $this->compiled;
+	return this.compiled
 }
+
+/**
+ * Bind the route to a given request for execution.
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @return $this
+ */
+// func (this *Route) compileRoute(request string) *Route {
+// this.compileRoute()
+
+// $this->parameters = (new RouteParameterBinder($this))
+// ->parameters($request);
+//
+// $this->originalParameters = $this->parameters;
+
+// return this
+// }
 
 /**
  * Set the router instance on the route.
@@ -119,7 +135,7 @@ func (this *Route) Fallback() *Route {
  *
  * @return array
  */
-func (this *Route) Methods() []string {
+func (this *Route) Methods() map[string]bool {
 	return this.methods
 }
 
@@ -289,4 +305,33 @@ func (this *Route) Middleware(middleware ...string) *Route {
 		this.Action.Middleware = append(this.Action.Middleware, middleware...)
 	}
 	return this
+}
+
+/**
+ * Get the compiled version of the route.
+ *
+ * @return \Symfony\Component\Routing\CompiledRoute
+ */
+func (this *Route) GetCompiled() *CompiledRoute {
+	return this.compiled
+}
+
+/**
+ * Get the route validators for the instance.
+ *
+ * @return array
+ */
+func (this *Route) GetValidators() []ValidatorInterface {
+	if Validators != nil {
+		return Validators
+	}
+
+	// To match the route, we will use a chain of responsibility pattern with the
+	// validator implementations. We will spin through each one making sure it
+	// passes and then we will know if the route as a whole matches request.
+	Validators = []ValidatorInterface{
+		NewUriValidator(), NewMethodValidator(),
+		NewSchemeValidator(), NewHostValidator(),
+	}
+	return Validators
 }
