@@ -1,7 +1,7 @@
 package Routing
 
 import (
-	"github.com/larisgo/larisgo/Support"
+	"github.com/larisgo/framework/Support"
 	"strings"
 )
 

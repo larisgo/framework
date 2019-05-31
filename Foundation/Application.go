@@ -1,7 +1,7 @@
 package Foundation
 
 import (
-	"github.com/larisgo/larisgo/Container"
+	"github.com/larisgo/framework/Container"
 	"path"
 	"path/filepath"
 	"strings"

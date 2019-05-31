@@ -1,7 +1,7 @@
 package Http
 
 import (
-	"github.com/larisgo/larisgo/Foundation"
+	"github.com/larisgo/framework/Foundation"
 )
 
 type Kernel interface {

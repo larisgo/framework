@@ -2,7 +2,7 @@ package Routing
 
 import (
 	"fmt"
-	"github.com/larisgo/larisgo/Http"
+	"github.com/larisgo/framework/Http"
 	"strings"
 )
 

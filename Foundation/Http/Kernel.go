@@ -1,9 +1,9 @@
 package Http
 
 import (
-	"github.com/larisgo/larisgo/Foundation"
-	"github.com/larisgo/larisgo/Http"
-	"github.com/larisgo/larisgo/Routing"
+	"github.com/larisgo/framework/Foundation"
+	"github.com/larisgo/framework/Http"
+	"github.com/larisgo/framework/Routing"
 	"net/http"
 )
 
