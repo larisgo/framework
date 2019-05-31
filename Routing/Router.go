@@ -101,9 +101,7 @@ func (this *Router) GetRoutes() *RouteCollection {
  * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
  */
 func (this *Router) Dispatch(request *Http.Request) {
-	fmt.Printf("%+v\n", request.Request)
-	fmt.Printf("%+v\n", request.Request.URL)
-	fmt.Printf("%+v\n", request.Request.URL.Query())
+	fmt.Printf("%+v\n", request.Context)
 	fmt.Printf("%+v\n", request.GetMethod())
 	// $this->currentRequest = $request;
 

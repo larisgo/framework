@@ -1,21 +1,21 @@
 package Http
 
 import (
-	"net/http"
+	"errors"
+	"fmt"
+	"github.com/valyala/fasthttp"
+	"regexp"
 	"strings"
 )
 
 type Request struct {
 	method  string
-	Request *http.Request
+	Context *fasthttp.RequestCtx
 }
 
-// func Capture()
-// {
-//     enableHttpMethodParameterOverride();
-
-//     return createFromBase(SymfonyRequest::createFromGlobals());
-// }
+func Capture(request *fasthttp.RequestCtx) *Request {
+	return &Request{Context: request}
+}
 
 /**
  * Get the request method.
@@ -40,57 +40,52 @@ func (this *Request) Method() string {
  *
  * @return mixed
  */
-// public function get($key, $default = null)
-// {
-//     if ($this !== $result = $this->attributes->get($key, $this)) {
-//         return $result;
-//     }
+func (this *Request) Get(key string, _default string) string {
+	// if ($this !== $result = $this->attributes->get($key, $this)) {
+	//     return $result;
+	// }
 
-//     if ($this !== $result = $this->query->get($key, $this)) {
-//         return $result;
-//     }
+	if this.Context.QueryArgs().Has(key) {
+		return string(this.Context.QueryArgs().Peek(key))
+	}
 
-//     if ($this !== $result = $this->request->get($key, $this)) {
-//         return $result;
-//     }
+	if this.Context.PostArgs().Has(key) {
+		return string(this.Context.PostArgs().Peek(key))
+	}
 
-//     return $default;
-// }
+	return _default
+}
 
 func (this *Request) GetMethod() string {
 	if this.method != "" {
 		return this.method
 	}
 
-	this.method = strings.ToUpper(this.Request.Method)
+	this.method = strings.ToUpper(string(this.Context.Method()))
 
-	if this.method != "POST" {
+	if !this.Context.IsPost() {
 		return this.method
 	}
+	method := string(this.Context.Request.Header.Peek("X-HTTP-METHOD-OVERRIDE"))
 
-	method := this.Request.Header.Get("X-HTTP-METHOD-OVERRIDE")
-
-	if method == "" && httpMethodParameterOverride {
-		// method = this.Post.Get("_method", $this->query->get('_method', 'POST'));
+	if method == "" {
+		if this.Context.PostArgs().Has("_method") {
+			method = string(this.Context.PostArgs().Peek("_method"))
+		} else if this.Context.QueryArgs().Has("_method") {
+			method = string(this.Context.QueryArgs().Peek("_method"))
+		} else {
+			method = "POST"
+		}
 	}
 
-	// if (!$method && self::$httpMethodParameterOverride) {
-	//     $method = $this->request->get('_method', $this->query->get('_method', 'POST'));
-	// }
-
-	// if (!\is_string($method)) {
-	//     return $this->method;
-	// }
-
-	// $method = strtoupper($method);
-
-	// if (\in_array($method, ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'PATCH', 'PURGE', 'TRACE'], true)) {
-	//     return $this->method = $method;
-	// }
-
-	// if (!preg_match('/^[A-Z]++$/D', $method)) {
-	//     throw new SuspiciousOperationException(sprintf('Invalid method override "%s".', $method));
-	// }
-	// this.Method = method
+	method = strings.ToUpper(method)
+	if _, ok := map[string]bool{"GET": true, "HEAD": true, "POST": true, "PUT": true, "DELETE": true, "CONNECT": true, "OPTIONS": true, "PATCH": true, "PURGE": true, "TRACE": true}[method]; ok {
+		this.method = method
+		return this.method
+	}
+	if !regexp.MustCompile(`^[A-Z]+$`).MatchString(method) {
+		panic(errors.New(fmt.Sprintf(`Invalid method override "%s".`, method)))
+	}
+	this.method = method
 	return this.method
 }
