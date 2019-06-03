@@ -2,6 +2,7 @@ package Routing
 
 import (
 	"fmt"
+	"github.com/larisgo/framework/Http"
 )
 
 type routeAction struct {
@@ -22,7 +23,7 @@ type routeAction struct {
  */
 func (this *routeAction) Parse(uri string, action Action) *routeAction {
 	if action == nil {
-		this.Uses = Action(func() {
+		this.Uses = Action(func(*Http.Request) *Http.Response {
 			panic(fmt.Sprintf("Route for [%s] has no action.", uri))
 		})
 		return this
@@ -31,6 +32,8 @@ func (this *routeAction) Parse(uri string, action Action) *routeAction {
 	return this
 }
 
-func RouteAction() *routeAction {
-	return &routeAction{}
+func RouteAction() (this *routeAction) {
+	this = &routeAction{}
+	this.Middleware = []string{}
+	return this
 }

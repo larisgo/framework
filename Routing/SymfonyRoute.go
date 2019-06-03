@@ -23,11 +23,11 @@ type SymfonyRoute struct {
 func NewSymfonyRoute(path string, defaults map[string]string, requirements map[string]string, options map[string]interface{}, host string, schemes map[string]bool, methods map[string]bool, condition string) (this *SymfonyRoute) {
 	this = &SymfonyRoute{}
 
-	this.schemes = make(map[string]bool)
-	this.methods = make(map[string]bool)
-	this.defaults = make(map[string]string)
-	this.requirements = make(map[string]string)
-	this.options = make(map[string]interface{})
+	this.schemes = map[string]bool{}
+	this.methods = map[string]bool{}
+	this.defaults = map[string]string{}
+	this.requirements = map[string]string{}
+	this.options = map[string]interface{}{}
 
 	this.SetPath(path)
 	this.AddDefaults(defaults)

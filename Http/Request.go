@@ -9,12 +9,17 @@ import (
 )
 
 type Request struct {
-	method  string
-	Context *fasthttp.RequestCtx
+	method        string
+	isHostValid   bool
+	routeResolver func() interface{}
+	Context       *fasthttp.RequestCtx
 }
 
-func Capture(request *fasthttp.RequestCtx) *Request {
-	return &Request{Context: request}
+func Capture(request *fasthttp.RequestCtx) (this *Request) {
+	this = &Request{Context: request}
+	this.isHostValid = true
+	this.isHostValid = true
+	return this
 }
 
 /**
@@ -89,3 +94,71 @@ func (this *Request) GetMethod() string {
 	this.method = method
 	return this.method
 }
+
+func (this *Request) GetHost() string {
+	host := string(this.Context.Host())
+	// trim and remove port number from host
+	// host is lowercase as per RFC 952/2181
+	host = regexp.MustCompile(`:\d+$`).ReplaceAllString(strings.TrimSpace(host), "")
+	// as the host can come from the user (HTTP_HOST and depending on the configuration, SERVER_NAME too can come from the user)
+	// check that it does not contain forbidden characters (see RFC 952 and RFC 2181)
+	// use preg_replace() instead of preg_match() to prevent DoS attacks with long host names
+	if host != "" {
+		if host = regexp.MustCompile(`(?:^\[)?[a-zA-Z0-9-:\]_]+\.?`).ReplaceAllString(host, ""); host != "" {
+			if !this.isHostValid {
+				return ""
+			}
+			panic(errors.New(fmt.Sprintf(`Invalid Host "%s".`, host)))
+		}
+
+	}
+
+	return host
+}
+
+/**
+ * Determine if the request is over HTTPS.
+ *
+ * @return bool
+ */
+func (this *Request) Secure() bool {
+	return this.Context.IsTLS()
+}
+
+/**
+ * Get the current path info for the request.
+ *
+ * @return string
+ */
+func (this *Request) Path() string {
+	if pattern := strings.Trim(string(this.Context.Path()), "/"); pattern != "" {
+		return pattern
+	}
+	return "/"
+}
+
+// /**
+//  * Get the route resolver callback.
+//  *
+//  * @return \Closure
+//  */
+// func (this *Request) GetRouteResolver() func() interface{} {
+// 	if this.routeResolver != nil {
+// 		return this.routeResolver
+// 	}
+// 	return func() interface{} {
+// 		return nil
+// 	}
+// }
+
+// /**
+//  * Set the route resolver callback.
+//  *
+//  * @param  \Closure  $callback
+//  * @return $this
+//  */
+// func (this *Request) SetRouteResolver(callback func() interface{}) *Request {
+// 	this.routeResolver = callback
+
+// 	return this
+// }

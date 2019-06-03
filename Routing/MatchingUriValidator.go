@@ -1,6 +1,7 @@
 package Routing
 
 import (
+	"github.com/larisgo/framework/Http"
 	"regexp"
 )
 
@@ -11,12 +12,13 @@ func NewUriValidator() ValidatorInterface {
 	return UriValidator{}
 }
 
-func (this UriValidator) matches(route *Route, patch string) bool {
-	if patch == "/" {
-		patch = "/"
+func (this UriValidator) matches(route *Route, request *Http.Request) bool {
+	path := request.Path()
+	if path == "/" {
+		path = "/"
 	} else {
-		patch = "/" + patch
+		path = "/" + path
 	}
 
-	return regexp.MustCompile(route.GetCompiled().GetRegex()).MatchString(patch)
+	return regexp.MustCompile(route.GetCompiled().GetRegex()).MatchString(path)
 }

@@ -1,5 +1,9 @@
 package Routing
 
+import (
+	"github.com/larisgo/framework/Http"
+)
+
 type ValidatorInterface interface {
-	matches(*Route, string) bool
+	matches(*Route, *Http.Request) bool
 }

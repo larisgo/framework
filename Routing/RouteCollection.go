@@ -1,5 +1,9 @@
 package Routing
 
+import (
+	"github.com/larisgo/framework/Http"
+)
+
 type RouteCollection struct {
 	routes     map[string]map[string]*Route
 	allRoutes  map[string]*Route
@@ -9,10 +13,10 @@ type RouteCollection struct {
 
 func NewRouteCollection() (this *RouteCollection) {
 	this = &RouteCollection{}
-	this.routes = make(map[string]map[string]*Route)
-	this.allRoutes = make(map[string]*Route)
-	this.nameList = make(map[string]*Route)
-	this.actionList = make(map[string]*Route)
+	this.routes = map[string]map[string]*Route{}
+	this.allRoutes = map[string]*Route{}
+	this.nameList = map[string]*Route{}
+	this.actionList = map[string]*Route{}
 	return this
 }
 
@@ -105,32 +109,33 @@ func (this *RouteCollection) RefreshNameLookups() {
 /**
  * Find the first route matching a given request.
  *
- * @param  Http\Request  $request
+ * @param  Http.Request  request
  * @return Routing\Route
  *
  * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
  */
-func (this *RouteCollection) Match() {
-	// routes := this.Get("GET")
+func (this *RouteCollection) Match(request *Http.Request) *Route {
+	routes := this.Get(request.GetMethod())
 
-	// // First, we will see if we can find a matching route for this current request
-	// // method. If we can, great, we can just return it so that it can be called
-	// // by the consumer. Otherwise we will check for routes with another verb.
-	// route := this.matchAgainstRoutes(routes, "1", true)
+	// First, we will see if we can find a matching route for this current request
+	// method. If we can, great, we can just return it so that it can be called
+	// by the consumer. Otherwise we will check for routes with another verb.
+	route := this.matchAgainstRoutes(routes, request, true)
 
-	// if route != nil {
-	// 	// return route.Bind("request")
-	// }
+	if route != nil {
+		return route.Bind(request)
+	}
 
 	// If no route was found we will now check if a matching route is specified by
 	// another HTTP verb. If it is we will need to throw a MethodNotAllowed and
 	// inform the user agent of which HTTP verb it should use for this route.
-	// others := this.checkForAlternateVerbs("request")
+	others := this.checkForAlternateVerbs(request)
 
-	// if (count($others) > 0) {
-	//     return this.getRouteForMethods($request, $others);
-	// }
+	if len(others) > 0 {
+		return this.getRouteForMethods(request, others)
+	}
 
+	panic(404)
 	// throw new NotFoundHttpException;
 }
 
@@ -142,7 +147,7 @@ func (this *RouteCollection) Match() {
  * @param  bool  $includingMethod
  * @return \Illuminate\Routing\Route|null
  */
-func (this *RouteCollection) matchAgainstRoutes(routes map[string]*Route, request string, includingMethod bool) *Route {
+func (this *RouteCollection) matchAgainstRoutes(routes map[string]*Route, request *Http.Request, includingMethod bool) *Route {
 	_fallbacks := []*Route{}
 	_routes := []*Route{}
 	for _, route := range routes {
@@ -167,25 +172,23 @@ func (this *RouteCollection) matchAgainstRoutes(routes map[string]*Route, reques
  * @param  \Illuminate\Http\Request  $request
  * @return array
  */
-/**
-  protected function checkForAlternateVerbs($request)
-  {
-      $methods = array_diff(Router::$verbs, [$request->getMethod()]);
+func (this *RouteCollection) checkForAlternateVerbs(request *Http.Request) map[string]bool {
+	methods := Verbs // copy
+	delete(methods, request.GetMethod())
 
-      // Here we will spin through all verbs except for the current request verb and
-      // check to see if any routes respond to them. If they do, we will return a
-      // proper error response with the correct headers on the response string.
-      $others = [];
+	// Here we will spin through all verbs except for the current request verb and
+	// check to see if any routes respond to them. If they do, we will return a
+	// proper error response with the correct headers on the response string.
+	others := map[string]bool{}
 
-      foreach ($methods as $method) {
-          if (! is_null($this->matchAgainstRoutes($this->get($method), $request, false))) {
-              $others[] = $method;
-          }
-      }
+	for method, _ := range methods {
+		if this.matchAgainstRoutes(this.Get(method), request, false) != nil {
+			others[method] = true
+		}
+	}
 
-      return $others;
-  }
-*/
+	return others
+}
 
 /**
  * Get a route (if necessary) that responds when other available methods are present.
@@ -196,18 +199,29 @@ func (this *RouteCollection) matchAgainstRoutes(routes map[string]*Route, reques
  *
  * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
  */
-/**
-  protected function getRouteForMethods($request, array $methods)
-  {
-      if ($request->method() === 'OPTIONS') {
-          return (new Route('OPTIONS', $request->path(), function () use ($methods) {
-              return new Response('', 200, ['Allow' => implode(',', $methods)]);
-          }))->bind($request);
-      }
+func (this *RouteCollection) getRouteForMethods(request *Http.Request, methods map[string]bool) *Route {
+	if request.Method() == "OPTIONS" {
+		return NewRoute(map[string]bool{"OPTIONS": true}, request.Path(), Action(func(*Http.Request) *Http.Response {
+			return Http.NewResponse("", 200)
+			// return new Response('', 200, ['Allow' => implode(',', $methods)]);
+		})).Bind(request)
+	}
 
-      $this->methodNotAllowed($methods);
-  }
-*/
+	return this.methodNotAllowed(methods)
+}
+
+/**
+ * Throw a method not allowed HTTP exception.
+ *
+ * @param  array  $others
+ * @return void
+ *
+ * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
+ */
+func (this *RouteCollection) methodNotAllowed(others map[string]bool) *Route {
+	panic(504)
+	// throw new MethodNotAllowedHttpException(others);
+}
 
 /**
  * Get routes from the collection by method.

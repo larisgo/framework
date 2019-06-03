@@ -1,6 +1,7 @@
 package Routing
 
 import (
+	"github.com/larisgo/framework/Http"
 	"regexp"
 )
 
@@ -11,11 +12,11 @@ func NewHostValidator() ValidatorInterface {
 	return HostValidator{}
 }
 
-func (this HostValidator) matches(route *Route, host string) bool {
+func (this HostValidator) matches(route *Route, request *Http.Request) bool {
 	_regex := route.GetCompiled().GetHostRegex()
 	if _regex == "" {
 		return true
 	}
 
-	return regexp.MustCompile(_regex).MatchString(host)
+	return regexp.MustCompile(_regex).MatchString(request.GetHost())
 }
