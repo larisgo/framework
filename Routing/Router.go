@@ -200,10 +200,10 @@ func (this *Router) prefix(uri string) string {
  * @param  string  $name
  * @return mixed
  */
-func (this *Router) RespondWithRoute(name string) interface{} {
-	route := this.routes.GetByName(name).Bind(this.currentRequest)
+func (this *Router) RespondWithRoute(request *Http.Request, name string) interface{} {
+	route := this.routes.GetByName(name).Bind(request)
 
-	return this.runRoute(this.currentRequest, route)
+	return this.runRoute(request, route)
 }
 
 func (this *Router) GetRoutes() *RouteCollection {
@@ -217,11 +217,7 @@ func (this *Router) GetRoutes() *RouteCollection {
  * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
  */
 func (this *Router) Dispatch(request *Http.Request) *Http.Response {
-	this.currentRequest = request
-
-	fmt.Printf("%+v\n", request.Context)
-	fmt.Printf("%+v\n", request.GetHost())
-	fmt.Printf("%+v\n", request.Path())
+	// this.currentRequest = request
 
 	return this.DispatchToRoute(request)
 }
@@ -244,7 +240,6 @@ func (this *Router) DispatchToRoute(request *Http.Request) *Http.Response {
  */
 func (this *Router) findRoute(request *Http.Request) *Route {
 	route := this.routes.Match(request)
-
 	this.current = route
 	// this.container.instance(Route::class, route);
 

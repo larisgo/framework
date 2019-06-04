@@ -1,10 +1,12 @@
 package Http
 
 import (
+	"fmt"
 	"github.com/larisgo/framework/Foundation"
 	"github.com/larisgo/framework/Http"
 	"github.com/larisgo/framework/Routing"
 	"github.com/valyala/fasthttp"
+	"runtime"
 )
 
 type Kernel struct {
@@ -23,7 +25,16 @@ func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kerne
 func (this *Kernel) Bootstrap() {
 }
 
-func (this *Kernel) Handle() {
+func (this *Kernel) Handle(request *fasthttp.RequestCtx) {
+	defer func() {
+		if err := recover(); err != nil {
+			var buf [4096]byte
+			n := runtime.Stack(buf[:], false)
+			fmt.Printf("%+v\n%s\n", err, string(buf[:n]))
+			fmt.Fprintf(request, "%+v\n%s\n", err, string(buf[:n]))
+		}
+	}()
+	this.SendRequestThroughRouter(request)
 }
 
 func (this *Kernel) SendRequestThroughRouter(request *fasthttp.RequestCtx) {

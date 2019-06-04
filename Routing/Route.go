@@ -10,19 +10,17 @@ import (
 var Validators []ValidatorInterface
 
 type Route struct {
-	uri                string
-	methods            map[string]bool
-	Action             *routeAction
-	IsFallback         bool
-	defaults           map[string]interface{}
-	wheres             map[string]string
-	parameters         map[string]interface{}
-	originalParameters map[string]interface{}
-	parameterNames     map[string]bool
-	compiled           *CompiledRoute
-	router             *Router
-	http               bool
-	https              bool
+	uri            string
+	methods        map[string]bool
+	Action         *routeAction
+	IsFallback     bool
+	defaults       map[string]string
+	wheres         map[string]string
+	parameterNames map[string]bool
+	compiled       *CompiledRoute
+	router         *Router
+	http           bool
+	https          bool
 }
 
 func NewRoute(methods map[string]bool, uri string, action Action) (this *Route) {
@@ -119,119 +117,11 @@ func (this *Route) compileRoute() *CompiledRoute {
 func (this *Route) Bind(request *Http.Request) *Route {
 	this.compileRoute()
 
-	// this->parameters = (new RouteParameterBinder(this))
-	// ->parameters(request);
-	//
-	// this->originalParameters = this->parameters;
+	for key, value := range NewRouteParameterBinder(this).Parameters(request) {
+		request.Context.SetUserValue(key, value)
+	}
 
 	return this
-}
-
-/**
- * Determine if the route has parameters.
- *
- * @return bool
- */
-func (this *Route) HasParameters() bool {
-	return this.parameters != nil
-}
-
-/**
- * Determine a given parameter exists from the route.
- *
- * @param  string name
- * @return bool
- */
-func (this *Route) HasParameter(name string) bool {
-	if this.HasParameters() {
-		_, ok := this.Parameters()[name]
-		return ok
-	}
-
-	return false
-}
-
-/**
- * Get a given parameter from the route.
- *
- * @param  string  name
- * @param  mixed   default
- * @return string|object
- */
-func (this *Route) Parameter(name string, _default interface{}) interface{} {
-	if v, ok := this.Parameters()[name]; ok {
-		return v
-	}
-	return _default
-}
-
-/**
- * Get original value of a given parameter from the route.
- *
- * @param  string  name
- * @param  mixed   default
- * @return string
- */
-func (this *Route) OriginalParameter(name string, _default interface{}) interface{} {
-	if v, ok := this.OriginalParameters()[name]; ok {
-		return v
-	}
-	return _default
-}
-
-/**
- * Set a parameter to the given value.
- *
- * @param  string  name
- * @param  mixed   value
- * @return void
- */
-func (this *Route) SetParameter(name string, value interface{}) {
-	this.Parameters()
-
-	this.parameters[name] = value
-}
-
-/**
- * Unset a parameter on the route if it is set.
- *
- * @param  string  name
- * @return void
- */
-func (this *Route) ForgetParameter(name string) {
-	this.Parameters()
-
-	delete(this.parameters, name)
-}
-
-/**
- * Get the key / value list of parameters for the route.
- *
- * @return array
- *
- * @throws \LogicException
- */
-func (this *Route) Parameters() map[string]interface{} {
-	if this.parameters != nil {
-		return this.parameters
-	}
-
-	panic(`Route is not bound.`)
-}
-
-/**
- * Get the key / value list of original parameters for the route.
- *
- * @return array
- *
- * @throws \LogicException
- */
-func (this *Route) OriginalParameters() map[string]interface{} {
-	if this.originalParameters != nil {
-		return this.originalParameters
-	}
-
-	panic(`Route is not bound.`)
 }
 
 /**
@@ -254,7 +144,7 @@ func (this *Route) ParameterNames() map[string]bool {
  * @return array
  */
 func (this *Route) CompileParameterNames() map[string]bool {
-	var _parameterNames map[string]bool
+	_parameterNames := map[string]bool{}
 	if matches := regexp.MustCompile(`\{(.*?)\}`).FindAllStringSubmatch(this.GetDomain()+this.Uri(), -1); len(matches) > 0 {
 		for _, m := range matches {
 			if len(m) == 2 {
@@ -272,7 +162,7 @@ func (this *Route) CompileParameterNames() map[string]bool {
  * @param  mixed  value
  * @return this
  */
-func (this *Route) Defaults(key string, value interface{}) *Route {
+func (this *Route) Defaults(key string, value string) *Route {
 	this.defaults[key] = value
 
 	return this

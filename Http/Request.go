@@ -45,10 +45,11 @@ func (this *Request) Method() string {
  *
  * @return mixed
  */
-func (this *Request) Get(key string, _default string) string {
-	// if ($this !== $result = $this->attributes->get($key, $this)) {
-	//     return $result;
-	// }
+func (this *Request) Get(key string, _default ...string) string {
+	_default = append(_default, "")
+	if v, ok := this.Context.UserValue(key).(string); ok {
+		return v
+	}
 
 	if this.Context.QueryArgs().Has(key) {
 		return string(this.Context.QueryArgs().Peek(key))
@@ -58,7 +59,7 @@ func (this *Request) Get(key string, _default string) string {
 		return string(this.Context.PostArgs().Peek(key))
 	}
 
-	return _default
+	return _default[0]
 }
 
 func (this *Request) GetMethod() string {
