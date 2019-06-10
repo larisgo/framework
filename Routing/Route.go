@@ -117,9 +117,9 @@ func (this *Route) compileRoute() *CompiledRoute {
 func (this *Route) Bind(request *Http.Request) *Route {
 	this.compileRoute()
 
-	for key, value := range NewRouteParameterBinder(this).Parameters(request) {
-		request.Context.SetUserValue(key, value)
-	}
+	// for key, value := range NewRouteParameterBinder(this).Parameters(request) {
+	// 	// request.Context.SetUserValue(key, value)
+	// }
 
 	return this
 }

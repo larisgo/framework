@@ -1,8 +1,8 @@
 package Routing
 
 import (
-	"errors"
 	"fmt"
+	"github.com/larisgo/framework/Errors"
 	"regexp"
 	"strings"
 )
@@ -483,7 +483,7 @@ func (this *SymfonyRoute) Compile() *CompiledRoute {
 	return this.compiled
 }
 
-func (this *SymfonyRoute) sanitizeRequirement(key, regex string) string {
+func (this *SymfonyRoute) sanitizeRequirement(key string, regex string) string {
 
 	if "" != regex && "^" == regex[0:1] {
 		regex = regex[1:] // returns false for a single character
@@ -494,7 +494,7 @@ func (this *SymfonyRoute) sanitizeRequirement(key, regex string) string {
 	}
 
 	if "" == regex {
-		panic(errors.New(fmt.Sprintf(`Routing requirement for "%s" cannot be empty.`, key)))
+		panic(Errors.NewInvalidArgumentException(fmt.Sprintf(`Routing requirement for "%s" cannot be empty.`, key)))
 	}
 
 	return regex

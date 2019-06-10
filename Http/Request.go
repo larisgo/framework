@@ -1,25 +1,69 @@
 package Http
 
 import (
-	"errors"
+	"context"
 	"fmt"
-	"github.com/valyala/fasthttp"
+	"github.com/larisgo/framework/Errors"
+	"github.com/larisgo/framework/Foundation"
+	"github.com/larisgo/framework/Http/HttpFoundation"
+	"net/http"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type Request struct {
-	method        string
-	isHostValid   bool
-	routeResolver func() interface{}
-	Context       *fasthttp.RequestCtx
+	App *Foundation.Application
+
+	method      string
+	request     *http.Request
+	response    http.ResponseWriter
+	isHostValid bool
+
+	Query      *HttpFoundation.ParameterBag
+	Post       *HttpFoundation.ParameterBag
+	Attributes *HttpFoundation.ParameterBag
+	Header     http.Header
+
+	context       context.Context
+	contextCancel context.CancelFunc
 }
 
-func Capture(request *fasthttp.RequestCtx) (this *Request) {
-	this = &Request{Context: request}
+func NewRequest(app *Foundation.Application, response http.ResponseWriter, request *http.Request) (this *Request) {
+	// 解析POST
+	this = &Request{App: app, request: request, response: response}
+	this.Query = HttpFoundation.NewParameterBag(request.URL.Query())
+
+	request.ParseMultipartForm(64 << 20)
+	this.Post = HttpFoundation.NewParameterBag(request.PostForm)
+	this.Header = request.Header
+	this.Attributes = HttpFoundation.NewParameterBag(map[string][]string{})
+
 	this.isHostValid = true
-	this.isHostValid = true
+
+	this.context, this.contextCancel = context.WithCancel(request.Context())
 	return this
+}
+
+// ----- implement context.Context interface ----- //
+func (this *Request) Deadline() (time.Time, bool) {
+	return this.context.Deadline()
+}
+
+func (this *Request) Done() <-chan struct{} {
+	return this.context.Done()
+}
+
+func (this *Request) Err() error {
+	return this.context.Err()
+}
+
+func (this *Request) Response() http.ResponseWriter {
+	return this.response
+}
+
+func (this *Request) Request() *http.Request {
+	return this.request
 }
 
 /**
@@ -47,17 +91,17 @@ func (this *Request) Method() string {
  */
 func (this *Request) Get(key string, _default ...string) string {
 	_default = append(_default, "")
-	if v, ok := this.Context.UserValue(key).(string); ok {
-		return v
-	}
+	// if v, ok := this.Context.UserValue(key).(string); ok {
+	// 	return v
+	// }
 
-	if this.Context.QueryArgs().Has(key) {
-		return string(this.Context.QueryArgs().Peek(key))
-	}
+	// if this.Context.QueryArgs().Has(key) {
+	// 	return string(this.Context.QueryArgs().Peek(key))
+	// }
 
-	if this.Context.PostArgs().Has(key) {
-		return string(this.Context.PostArgs().Peek(key))
-	}
+	// if this.Context.PostArgs().Has(key) {
+	// 	return string(this.Context.PostArgs().Peek(key))
+	// }
 
 	return _default[0]
 }
@@ -67,37 +111,37 @@ func (this *Request) GetMethod() string {
 		return this.method
 	}
 
-	this.method = strings.ToUpper(string(this.Context.Method()))
+	this.method = strings.ToUpper(this.request.Method)
 
-	if !this.Context.IsPost() {
+	if this.method != "POST" {
 		return this.method
 	}
-	method := string(this.Context.Request.Header.Peek("X-HTTP-METHOD-OVERRIDE"))
+	method := this.Header.Get("X-HTTP-METHOD-OVERRIDE")
 
 	if method == "" {
-		if this.Context.PostArgs().Has("_method") {
-			method = string(this.Context.PostArgs().Peek("_method"))
-		} else if this.Context.QueryArgs().Has("_method") {
-			method = string(this.Context.QueryArgs().Peek("_method"))
-		} else {
-			method = "POST"
-		}
+		// 	if _method := this.request.PostFormValue("_method"); _method != "" {
+		// 		method = this.request.PostFormValue("_method")
+		// 	} else if this.request.QueryArgs().Has("_method") {
+		// 		method = this.request.URI("_method")
+		// 	} else {
+		// 		method = "POST"
+		// 	}
 	}
 
-	method = strings.ToUpper(method)
-	if _, ok := map[string]bool{"GET": true, "HEAD": true, "POST": true, "PUT": true, "DELETE": true, "CONNECT": true, "OPTIONS": true, "PATCH": true, "PURGE": true, "TRACE": true}[method]; ok {
-		this.method = method
-		return this.method
-	}
-	if !regexp.MustCompile(`^[A-Z]+$`).MatchString(method) {
-		panic(errors.New(fmt.Sprintf(`Invalid method override "%s".`, method)))
-	}
-	this.method = method
+	// method = strings.ToUpper(method)
+	// if _, ok := map[string]bool{"GET": true, "HEAD": true, "POST": true, "PUT": true, "DELETE": true, "CONNECT": true, "OPTIONS": true, "PATCH": true, "PURGE": true, "TRACE": true}[method]; ok {
+	// 	this.method = method
+	// 	return this.method
+	// }
+	// if !regexp.MustCompile(`^[A-Z]+$`).MatchString(method) {
+	// 	panic(Errors.NewUnexpectedValueException(fmt.Sprintf(`Invalid method override "%s".`, method)))
+	// }
+	// this.method = method
 	return this.method
 }
 
 func (this *Request) GetHost() string {
-	host := string(this.Context.Host())
+	host := this.request.Host
 	// trim and remove port number from host
 	// host is lowercase as per RFC 952/2181
 	host = regexp.MustCompile(`:\d+$`).ReplaceAllString(strings.TrimSpace(host), "")
@@ -109,9 +153,9 @@ func (this *Request) GetHost() string {
 			if !this.isHostValid {
 				return ""
 			}
-			panic(errors.New(fmt.Sprintf(`Invalid Host "%s".`, host)))
+			this.isHostValid = false
+			panic(Errors.NewUnexpectedValueException(fmt.Sprintf(`Invalid Host "%s".`, host)))
 		}
-
 	}
 
 	return host
@@ -123,7 +167,8 @@ func (this *Request) GetHost() string {
  * @return bool
  */
 func (this *Request) Secure() bool {
-	return this.Context.IsTLS()
+	return true
+	// return this.Context.IsTLS()
 }
 
 /**
@@ -132,7 +177,7 @@ func (this *Request) Secure() bool {
  * @return string
  */
 func (this *Request) Path() string {
-	if pattern := strings.Trim(string(this.Context.Path()), "/"); pattern != "" {
+	if pattern := strings.Trim(this.request.URL.Path, "/"); pattern != "" {
 		return pattern
 	}
 	return "/"

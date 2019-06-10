@@ -2,10 +2,11 @@ package Http
 
 import (
 	"fmt"
+	// "github.com/larisgo/framework/Errors"
 	"github.com/larisgo/framework/Foundation"
 	"github.com/larisgo/framework/Http"
 	"github.com/larisgo/framework/Routing"
-	"github.com/valyala/fasthttp"
+	"net/http"
 	"runtime"
 )
 
@@ -25,21 +26,13 @@ func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kerne
 func (this *Kernel) Bootstrap() {
 }
 
-func (this *Kernel) Handle(request *fasthttp.RequestCtx) {
-	defer func() {
-		if err := recover(); err != nil {
-			var buf [4096]byte
-			n := runtime.Stack(buf[:], false)
-			fmt.Printf("%+v\n%s\n", err, string(buf[:n]))
-			fmt.Fprintf(request, "%+v\n%s\n", err, string(buf[:n]))
-		}
-	}()
-	this.SendRequestThroughRouter(request)
+func (this *Kernel) Handle() {
+	panic(http.ListenAndServe("127.0.0.1:8000", this))
+	// http.ListenAndServeTLS(addr, certFile, keyFile, this)
 }
 
-func (this *Kernel) SendRequestThroughRouter(request *fasthttp.RequestCtx) {
-	this.router.Dispatch(Http.Capture(request)).Send()
-	// this.dispatchToRouter()()
+func (this *Kernel) SendRequestThroughRouter(request *Http.Request) {
+	this.router.Dispatch(request).Send()
 	// request.Error(fasthttp.StatusMessage(fasthttp.StatusNotFound),
 	// fasthttp.StatusNotFound)
 }
@@ -64,7 +57,7 @@ func (this *Kernel) SendRequestThroughRouter(request *fasthttp.RequestCtx) {
 // func (this *Kernel) dispatchToRouter() *Routing.Router {
 // }
 
-func (this *Kernel) ServeFiles(uri string, root string) {
+func (this *Kernel) ServeFile(uri string, root string) {
 	// if len(uri) < 10 || uri[len(uri)-10:] != "/*fileuri" {
 	// 	panic("uri must end with /*fileuri in uri '" + uri + "'")
 	// }
@@ -77,6 +70,23 @@ func (this *Kernel) ServeFiles(uri string, root string) {
 	// })
 }
 
+func (this *Kernel) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	defer func() {
+		if err := recover(); err != nil {
+			var buf [4096]byte
+			n := runtime.Stack(buf[:], false)
+			// if e, ok := err.(Errors.Exception); ok {
+			// 	fmt.Printf("%+v\n%s\n", e.GetMessage(), string(buf[:n]))
+			// 	fmt.Fprintf(response, "%+v\n%s\n", e.GetMessage(), string(buf[:n]))
+			// } else {
+			fmt.Printf("%+v\n%s\n", err, string(buf[:n]))
+			fmt.Fprintf(response, "%+v\n%s\n", err, string(buf[:n]))
+			// }
+		}
+	}()
+	this.SendRequestThroughRouter(Http.NewRequest(this.app, response, request))
+}
+
 /**
  * Call the terminate method on any terminable middleware.
  *
@@ -84,7 +94,7 @@ func (this *Kernel) ServeFiles(uri string, root string) {
  * @param  Http\Response  response
  * @return void
  */
-func (this *Kernel) Terminate(request interface{}, response interface{}) {
+func (this *Kernel) Terminate(request *Http.Request, response *Http.Response) {
 	this.app.Terminate()
 }
 

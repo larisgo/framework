@@ -39,15 +39,12 @@ func (this *ParameterBag) Replace(parameters map[string][]string) {
 	this.parameters = parameters
 }
 
-/**
- * Adds parameters.
- *
- * @param array parameters An array of parameters
- */
-func (this *ParameterBag) Add(parameters map[string][]string) {
-	for k, v := range parameters {
-		this.parameters[k] = v
-	}
+// Add adds the value to key. It appends to any existing
+// values associated with key.
+func (this *ParameterBag) Add(key string, value string) {
+	// if _, ok := this.parameters[key]; ok {
+	this.parameters[key] = append(this.parameters[key], value)
+	// }
 }
 
 /**
@@ -58,11 +55,41 @@ func (this *ParameterBag) Add(parameters map[string][]string) {
  *
  * @return mixed
  */
-func (this *ParameterBag) Get(key string, _default string) string {
+func (this *ParameterBag) Get(key string, _default ...string) string {
+	return this.GetLast(key, _default...)
+}
+
+/**
+ * Returns a parameter by name.
+ *
+ * @param string key     The key
+ * @param mixed  default The default value if the parameter key does not exist
+ *
+ * @return mixed
+ */
+func (this *ParameterBag) GetFirst(key string, _default ...string) string {
+	_default = append(_default, "")
+	value := this.Gets(key)
+	if len(value) == 0 {
+		return _default[0]
+	}
+	return value[0]
+}
+
+/**
+ * Returns a parameter by name.
+ *
+ * @param string key     The key
+ * @param mixed  default The default value if the parameter key does not exist
+ *
+ * @return mixed
+ */
+func (this *ParameterBag) GetLast(key string, _default ...string) string {
+	_default = append(_default, "")
 	value := this.Gets(key)
 	l := len(value)
 	if l == 0 {
-		return _default
+		return _default[0]
 	}
 	return value[l-1]
 }
@@ -89,8 +116,8 @@ func (this *ParameterBag) Gets(key string, _default ...[]string) []string {
  * @param string key   The key
  * @param mixed  value The value
  */
-func (this *ParameterBag) Set(key string, value []string) {
-	this.parameters[key] = value
+func (this *ParameterBag) Set(key string, value string) {
+	this.parameters[key] = []string{value}
 }
 
 /**
@@ -112,4 +139,13 @@ func (this *ParameterBag) Has(key string) bool {
  */
 func (this *ParameterBag) Remove(key string) {
 	delete(this.parameters, key)
+}
+
+/**
+ * Returns the number of parameters.
+ *
+ * @return int The number of parameters
+ */
+func (this *ParameterBag) Count() int {
+	return len(this.parameters)
 }

@@ -1,6 +1,7 @@
 package Routing
 
 import (
+	"github.com/larisgo/framework/Errors"
 	"github.com/larisgo/framework/Http"
 )
 
@@ -112,7 +113,7 @@ func (this *RouteCollection) RefreshNameLookups() {
  * @param  Http.Request  request
  * @return Routing\Route
  *
- * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+ * @throws Errors.NotFoundHttpException
  */
 func (this *RouteCollection) Match(request *Http.Request) *Route {
 	routes := this.Get(request.GetMethod())
@@ -135,8 +136,7 @@ func (this *RouteCollection) Match(request *Http.Request) *Route {
 		return this.getRouteForMethods(request, others)
 	}
 
-	panic(404)
-	// throw new NotFoundHttpException;
+	panic(Errors.NewNotFoundHttpException("Not Found"))
 }
 
 /**
@@ -216,11 +216,10 @@ func (this *RouteCollection) getRouteForMethods(request *Http.Request, methods m
  * @param  array  $others
  * @return void
  *
- * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
+ * @throws Errors.MethodNotAllowedHttpException
  */
 func (this *RouteCollection) methodNotAllowed(others map[string]bool) *Route {
-	panic(504)
-	// throw new MethodNotAllowedHttpException(others);
+	panic(Errors.NewMethodNotAllowedHttpException(others, "Method Not Allowed"))
 }
 
 /**

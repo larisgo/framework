@@ -1,8 +1,8 @@
 package Routing
 
 import (
-	"errors"
 	"fmt"
+	"github.com/larisgo/framework/Errors"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -75,7 +75,7 @@ func (this *SymfonyRouteCompiler) Compile(route *SymfonyRoute) *CompiledRoute {
 
 	for _, pathParam := range pathVariables {
 		if pathParam == "_fragment" {
-			panic(errors.New(fmt.Sprintf(`Route pattern "%s" cannot contain "_fragment" as a path parameter.`, route.GetPath())))
+			panic(Errors.NewInvalidArgumentException(fmt.Sprintf(`Route pattern "%s" cannot contain "_fragment" as a path parameter.`, route.GetPath())))
 		}
 	}
 
@@ -112,10 +112,10 @@ func (this *SymfonyRouteCompiler) compilePattern(route *SymfonyRoute, pattern st
 	useUtf8 := utf8.ValidString(pattern)
 	needsUtf8 := route.GetOption("utf8").(bool)
 	if !needsUtf8 && useUtf8 && regexp.MustCompile(`[\x80-\xFF]`).MatchString(pattern) {
-		panic(errors.New(fmt.Sprintf(`Cannot use UTF-8 route patterns without setting the "utf8" option for route "%s".`, route.GetPath())))
+		panic(Errors.NewLogicException(fmt.Sprintf(`Cannot use UTF-8 route patterns without setting the "utf8" option for route "%s".`, route.GetPath())))
 	}
 	if !useUtf8 && needsUtf8 {
-		panic(errors.New(fmt.Sprintf(`Cannot mix UTF-8 requirements with non-UTF-8 pattern "%s".`, pattern)))
+		panic(Errors.NewLogicException(fmt.Sprintf(`Cannot mix UTF-8 requirements with non-UTF-8 pattern "%s".`, pattern)))
 	}
 	// Match all variables enclosed in "{}" and iterate over them. But we only want to match the innermost variable
 	// in case of nested "{}", e.g. {foo{bar}}. This in ensured because \w does not match "{" or "}" itself.
@@ -145,14 +145,14 @@ func (this *SymfonyRouteCompiler) compilePattern(route *SymfonyRoute, pattern st
 		// A PCRE subpattern name must start with a non-digit. Also a PHP variable cannot start with a digit so the
 		// variable would not be usable as a Controller action argument.
 		if regexp.MustCompile(`^\d`).MatchString(varName) {
-			panic(errors.New(fmt.Sprintf(`Variable name "%s" cannot start with a digit in route pattern "%s". Please use a different name.`, varName, pattern)))
+			panic(Errors.NewDomainException(fmt.Sprintf(`Variable name "%s" cannot start with a digit in route pattern "%s". Please use a different name.`, varName, pattern)))
 		}
 		if _, ok := variables[varName]; ok {
-			panic(errors.New(fmt.Sprintf(`Route pattern "%s" cannot reference variable name "%s" more than once.`, pattern, varName)))
+			panic(Errors.NewLogicException(fmt.Sprintf(`Route pattern "%s" cannot reference variable name "%s" more than once.`, pattern, varName)))
 		}
 
 		if len(varName) > VARIABLE_MAXIMUM_LENGTH {
-			panic(errors.New(fmt.Sprintf(`Variable name "%s" cannot be longer than %s characters in route pattern "%s". Please use a shorter name.`, pattern)))
+			panic(Errors.NewDomainException(fmt.Sprintf(`Variable name "%s" cannot be longer than %s characters in route pattern "%s". Please use a shorter name.`, pattern)))
 		}
 
 		if isSeparator && precedingText != precedingChar {
@@ -197,10 +197,10 @@ func (this *SymfonyRouteCompiler) compilePattern(route *SymfonyRoute, pattern st
 			if !utf8.ValidString(_regexp) {
 				useUtf8 = false
 			} else if !needsUtf8 && regexp.MustCompile(`[\x80-\xFF]|(?<!\\)\\(?:\\\\)*+(?-i:X|[pP][\{CLMNPSZ]|x\{[A-Fa-f0-9]{3})`).MatchString(_regexp) {
-				panic(errors.New(fmt.Sprintf(`Cannot use UTF-8 route requirements without setting the "utf8" option for variable "%s" in pattern "%s".`, varName, pattern)))
+				panic(Errors.NewLogicException(fmt.Sprintf(`Cannot use UTF-8 route requirements without setting the "utf8" option for variable "%s" in pattern "%s".`, varName, pattern)))
 			}
 			if !useUtf8 && needsUtf8 {
-				panic(errors.New(fmt.Sprintf(`Cannot mix UTF-8 requirement with non-UTF-8 charset for variable "%s" in pattern "%s"`, varName, pattern)))
+				panic(Errors.NewLogicException(fmt.Sprintf(`Cannot mix UTF-8 requirement with non-UTF-8 charset for variable "%s" in pattern "%s"`, varName, pattern)))
 			}
 			_regexp = this.transformCapturingGroupsToNonCapturings(_regexp)
 		}

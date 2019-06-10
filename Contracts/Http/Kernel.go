@@ -2,6 +2,8 @@ package Http
 
 import (
 	"github.com/larisgo/framework/Foundation"
+	"github.com/larisgo/framework/Http"
+	"github.com/valyala/fasthttp"
 )
 
 type Kernel interface {
@@ -19,7 +21,7 @@ type Kernel interface {
 	 * @param  Request  request
 	 * @return Response
 	 */
-	Handle(request interface{})
+	Handle(*fasthttp.RequestCtx)
 
 	/**
 	 * Perform any final actions for the request lifecycle.
@@ -28,7 +30,7 @@ type Kernel interface {
 	 * @param  Response  response
 	 * @return void
 	 */
-	Terminate(request interface{}, response interface{})
+	Terminate(*Http.Request, *Http.Response)
 
 	/**
 	 * Get the Laravel application instance.

@@ -18,7 +18,6 @@ var Verbs map[string]bool = map[string]bool{"GET": true, "HEAD": true, "POST": t
 type Router struct {
 	routes           *RouteCollection
 	current          *Route
-	currentRequest   *Http.Request
 	middleware       map[string]interface{}
 	middlewareGroups map[string]interface{}
 
@@ -92,10 +91,12 @@ func (this *Router) Any(uri string, action func(*Http.Request) *Http.Response) *
  * @param  \Closure|array|string|callable|null  action
  * @return \Illuminate\Routing\Route
  */
-func (this *Router) Fallback(action func(*Http.Request) *Http.Response) *Route {
+func (this *Router) Fallback(action func(*Http.Request) *Http.Response, methods ...string) *Route {
 	placeholder := "fallbackPlaceholder"
-
-	return this.AddRoute(map[string]bool{"GET": true}, fmt.Sprintf("{{%s}}", placeholder), action).Where(placeholder, ".*").Fallback()
+	if len(methods) == 0 {
+		methods = []string{"GET"}
+	}
+	return this.Match(methods, fmt.Sprintf("{{%s}}", placeholder), action).Where(placeholder, ".*").Fallback()
 }
 
 func (this *Router) Match(methods []string, uri string, action func(*Http.Request) *Http.Response) *Route {
@@ -217,7 +218,6 @@ func (this *Router) GetRoutes() *RouteCollection {
  * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
  */
 func (this *Router) Dispatch(request *Http.Request) *Http.Response {
-	// this.currentRequest = request
 
 	return this.DispatchToRoute(request)
 }
