@@ -6,6 +6,7 @@ import (
 	"github.com/larisgo/framework/Errors"
 	"github.com/larisgo/framework/Foundation"
 	"github.com/larisgo/framework/Http/HttpFoundation"
+	"github.com/larisgo/framework/Support"
 	"net/http"
 	"regexp"
 	"strings"
@@ -15,15 +16,17 @@ import (
 type Request struct {
 	App *Foundation.Application
 
+	request  *http.Request
+	response http.ResponseWriter
+
 	method      string
-	request     *http.Request
-	response    http.ResponseWriter
+	pathInfo    string
 	isHostValid bool
 
 	Query      *HttpFoundation.ParameterBag
 	Post       *HttpFoundation.ParameterBag
 	Attributes *HttpFoundation.ParameterBag
-	Header     http.Header
+	Headers    http.Header
 
 	context       context.Context
 	contextCancel context.CancelFunc
@@ -36,7 +39,7 @@ func NewRequest(app *Foundation.Application, response http.ResponseWriter, reque
 
 	request.ParseMultipartForm(64 << 20)
 	this.Post = HttpFoundation.NewParameterBag(request.PostForm)
-	this.Header = request.Header
+	this.Headers = request.Header
 	this.Attributes = HttpFoundation.NewParameterBag(map[string][]string{})
 
 	this.isHostValid = true
@@ -67,6 +70,28 @@ func (this *Request) Request() *http.Request {
 }
 
 /**
+ * Returns the path being requested relative to the executed script.
+ *
+ * The path info always starts with a /.
+ *
+ * Suppose this request is instantiated from /mysite on localhost:
+ *
+ *  * http://localhost/mysite              returns an empty string
+ *  * http://localhost/mysite/about        returns '/about'
+ *  * http://localhost/mysite/enco%20ded   returns '/enco%20ded'
+ *  * http://localhost/mysite/about?var=1  returns '/about'
+ *
+ * @return string The raw path (i.e. not urldecoded)
+ */
+func (this *Request) GetPathInfo() string {
+	if this.pathInfo == "" {
+		this.pathInfo = this.request.URL.Path
+	}
+
+	return this.pathInfo
+}
+
+/**
  * Get the request method.
  *
  * @return string
@@ -84,24 +109,43 @@ func (this *Request) Method() string {
  *
  * Order of precedence: PATH (routing placeholders or custom attributes), GET, BODY
  *
- * @param string $key     The key
- * @param mixed  $default The default value if the parameter key does not exist
+ * @param string key     The key
+ * @param mixed  default The default value if the parameter key does not exist
  *
- * @return mixed
+ * @return string
  */
 func (this *Request) Get(key string, _default ...string) string {
 	_default = append(_default, "")
-	// if v, ok := this.Context.UserValue(key).(string); ok {
-	// 	return v
-	// }
 
-	// if this.Context.QueryArgs().Has(key) {
-	// 	return string(this.Context.QueryArgs().Peek(key))
-	// }
+	if this.Attributes.Has(key) {
+		return this.Attributes.Get(key)
+	}
 
-	// if this.Context.PostArgs().Has(key) {
-	// 	return string(this.Context.PostArgs().Peek(key))
-	// }
+	if this.Query.Has(key) {
+		return this.Query.Get(key)
+	}
+
+	if this.Post.Has(key) {
+		return this.Post.Get(key)
+	}
+
+	return _default[0]
+}
+
+func (this *Request) Gets(key string, _default ...[]string) []string {
+	_default = append(_default, []string{})
+
+	if this.Attributes.Has(key) {
+		return this.Attributes.Gets(key)
+	}
+
+	if this.Query.Has(key) {
+		return this.Query.Gets(key)
+	}
+
+	if this.Post.Has(key) {
+		return this.Post.Gets(key)
+	}
 
 	return _default[0]
 }
@@ -116,27 +160,29 @@ func (this *Request) GetMethod() string {
 	if this.method != "POST" {
 		return this.method
 	}
-	method := this.Header.Get("X-HTTP-METHOD-OVERRIDE")
+	method := this.Headers.Get("X-HTTP-METHOD-OVERRIDE")
 
 	if method == "" {
-		// 	if _method := this.request.PostFormValue("_method"); _method != "" {
-		// 		method = this.request.PostFormValue("_method")
-		// 	} else if this.request.QueryArgs().Has("_method") {
-		// 		method = this.request.URI("_method")
-		// 	} else {
-		// 		method = "POST"
-		// 	}
+		if this.Post.Has("_method") {
+			method = this.Post.Get("_method")
+		} else if this.Query.Has("_method") {
+			method = this.Query.Get("_method")
+		} else {
+			method = "POST"
+		}
 	}
 
-	// method = strings.ToUpper(method)
-	// if _, ok := map[string]bool{"GET": true, "HEAD": true, "POST": true, "PUT": true, "DELETE": true, "CONNECT": true, "OPTIONS": true, "PATCH": true, "PURGE": true, "TRACE": true}[method]; ok {
-	// 	this.method = method
-	// 	return this.method
-	// }
-	// if !regexp.MustCompile(`^[A-Z]+$`).MatchString(method) {
-	// 	panic(Errors.NewUnexpectedValueException(fmt.Sprintf(`Invalid method override "%s".`, method)))
-	// }
-	// this.method = method
+	method = strings.ToUpper(method)
+	if _, ok := map[string]bool{"GET": true, "HEAD": true, "POST": true, "PUT": true, "DELETE": true, "CONNECT": true, "OPTIONS": true, "PATCH": true, "PURGE": true, "TRACE": true}[method]; ok {
+		this.method = method
+		return this.method
+	}
+	if !regexp.MustCompile(`^[A-Z]+$`).MatchString(method) {
+		panic(Errors.NewUnexpectedValueException(fmt.Sprintf(`Invalid method override "%s".`, method)))
+	}
+
+	this.method = method
+
 	return this.method
 }
 
@@ -167,8 +213,7 @@ func (this *Request) GetHost() string {
  * @return bool
  */
 func (this *Request) Secure() bool {
-	return true
-	// return this.Context.IsTLS()
+	return this.request.TLS != nil
 }
 
 /**
@@ -177,34 +222,26 @@ func (this *Request) Secure() bool {
  * @return string
  */
 func (this *Request) Path() string {
-	if pattern := strings.Trim(this.request.URL.Path, "/"); pattern != "" {
+	if pattern := strings.Trim(this.GetPathInfo(), "/"); pattern != "" {
 		return pattern
 	}
 	return "/"
 }
 
-// /**
-//  * Get the route resolver callback.
-//  *
-//  * @return \Closure
-//  */
-// func (this *Request) GetRouteResolver() func() interface{} {
-// 	if this.routeResolver != nil {
-// 		return this.routeResolver
-// 	}
-// 	return func() interface{} {
-// 		return nil
-// 	}
-// }
+/**
+ * Get the client user agent.
+ *
+ * @return string
+ */
+func (this *Request) UserAgent() string {
+	return this.Headers.Get("User-Agent")
+}
 
-// /**
-//  * Set the route resolver callback.
-//  *
-//  * @param  \Closure  $callback
-//  * @return $this
-//  */
-// func (this *Request) SetRouteResolver(callback func() interface{}) *Request {
-// 	this.routeResolver = callback
-
-// 	return this
-// }
+/**
+ * Determine if the request is sending JSON.
+ *
+ * @return bool
+ */
+func (this *Request) IsJson() bool {
+	return Support.Str().Contains([]string{"/json", "+json"}, this.Headers.Get("Content-Type"))
+}

@@ -42,9 +42,7 @@ func (this *ParameterBag) Replace(parameters map[string][]string) {
 // Add adds the value to key. It appends to any existing
 // values associated with key.
 func (this *ParameterBag) Add(key string, value string) {
-	// if _, ok := this.parameters[key]; ok {
 	this.parameters[key] = append(this.parameters[key], value)
-	// }
 }
 
 /**

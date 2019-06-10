@@ -2,6 +2,7 @@ package Routing
 
 import (
 	"fmt"
+	"github.com/larisgo/framework/Errors"
 	"github.com/larisgo/framework/Http"
 )
 
@@ -10,7 +11,6 @@ type routeAction struct {
 	Prefix     string
 	Uses       Action
 	As         string
-	Controller string
 	Middleware []string
 }
 
@@ -24,7 +24,7 @@ type routeAction struct {
 func (this *routeAction) Parse(uri string, action Action) *routeAction {
 	if action == nil {
 		this.Uses = Action(func(*Http.Request) *Http.Response {
-			panic(fmt.Sprintf("Route for [%s] has no action.", uri))
+			panic(Errors.NewLogicException(fmt.Sprintf("Route for [%s] has no action.", uri)))
 		})
 		return this
 	}

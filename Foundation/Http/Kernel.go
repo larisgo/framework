@@ -24,6 +24,7 @@ func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kerne
 }
 
 func (this *Kernel) Bootstrap() {
+
 }
 
 func (this *Kernel) Handle() {

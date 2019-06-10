@@ -113,7 +113,7 @@ type Response struct {
 	charset string
 }
 
-func NewResponse(content string, status int, headers ...map[string][]string) (this *Response) {
+func NewResponse(content interface{}, status int, headers ...map[string][]string) (this *Response) {
 	headers = append(headers, map[string][]string{})
 
 	this = &Response{}
@@ -170,7 +170,7 @@ func (this *Response) shouldBeJson(content interface{}) bool {
 	if _, ok := content.(Support.Jsonable); ok {
 		return ok
 	}
-	if _, ok := content.(map[interface{}]interface{}); ok {
+	if _, ok := content.(map[string]interface{}); ok {
 		return ok
 	}
 	return false

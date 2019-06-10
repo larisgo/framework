@@ -4,7 +4,9 @@ type Container struct {
 	/**
 	 * The current globally available container (if any).
 	 */
-	instance interface{}
+	instance map[string]interface{}
+
+	aliases map[string]interface{}
 
 	/**
 	 * The container's bindings.

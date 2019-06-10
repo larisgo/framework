@@ -48,5 +48,47 @@ func (this *str) Is(patterns []string, value ...string) bool {
  */
 func (this *str) Length(value ...string) int {
 	value = append(value, this._str)
-	return utf8.RuneCountInString(value[0])
+	return len([]rune(value[0]))
+}
+
+/**
+ * Determine if a given string contains a given substring.
+ *
+ * @param  []string  needles
+ * @param  string  haystack
+ * @return bool
+ */
+func (this *str) Contains(needles []string, haystack ...string) bool {
+	haystack = append(haystack, this._str)
+
+	for _, needle := range needles {
+		if needle != "" && strings.Index(haystack[0], needle) > 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+/**
+ * Returns the portion of string specified by the start and length parameters.
+ *
+ * @param  string  string
+ * @param  int  start
+ * @param  int|null  length
+ * @return string
+ */
+func (this *str) Substr(str string, start int, length ...int) string {
+	length = append(length, -1)
+	_str := []rune(str)
+	_str_length := len(_str)
+	end := start + length[0]
+	if (start > _str_length) || (start < 0) {
+		start = 0
+	}
+	if (end < start) || (end > _str_length) {
+		end = _str_length
+	}
+
+	return string(str[start:end])
 }
