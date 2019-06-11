@@ -11,8 +11,8 @@ import (
 )
 
 type Kernel struct {
-	app    *Foundation.Application
-	router *Routing.Router
+	app    *Foundation.Application `inject:app`
+	router *Routing.Router         `inject:router`
 }
 
 func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kernel) {

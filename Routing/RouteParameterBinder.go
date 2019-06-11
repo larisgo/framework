@@ -42,6 +42,10 @@ func (this *RouteParameterBinder) combine(key []string, value []string) map[stri
 		for k, v := range key {
 			result[v] = value[k]
 		}
+	} else {
+		for k, v := range value {
+			result[key[k]] = v
+		}
 	}
 	return result
 }

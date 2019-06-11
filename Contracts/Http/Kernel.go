@@ -3,7 +3,6 @@ package Http
 import (
 	"github.com/larisgo/framework/Foundation"
 	"github.com/larisgo/framework/Http"
-	"github.com/valyala/fasthttp"
 )
 
 type Kernel interface {
@@ -21,7 +20,7 @@ type Kernel interface {
 	 * @param  Request  request
 	 * @return Response
 	 */
-	Handle(*fasthttp.RequestCtx)
+	Handle()
 
 	/**
 	 * Perform any final actions for the request lifecycle.

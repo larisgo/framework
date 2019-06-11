@@ -99,7 +99,7 @@ func (this *RouteCollection) addToActionList(action Action, route *Route) {
  * @return void
  */
 func (this *RouteCollection) RefreshNameLookups() {
-	this.nameList = make(map[string]*Route, 0)
+	this.nameList = map[string]*Route{}
 	for _, route := range this.allRoutes {
 		if name := route.GetName(); name != "" {
 			this.nameList[name] = route

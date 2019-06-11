@@ -36,7 +36,7 @@ func (this *RouteCompiler) Compile() *CompiledRoute {
  */
 func (this *RouteCompiler) getOptionalParameters() (v map[string]string) {
 
-	v = make(map[string]string)
+	v = map[string]string{}
 	for _, match := range regexp.MustCompile(`\{(\w+?)\?\}`).FindAllStringSubmatch(this.route.Uri(), -1) {
 		if len(match) == 2 {
 			v[match[1]] = ""
