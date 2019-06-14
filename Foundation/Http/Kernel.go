@@ -3,16 +3,23 @@ package Http
 import (
 	"fmt"
 	// "github.com/larisgo/framework/Errors"
+	ContractsFoundation "github.com/larisgo/framework/Contracts/Foundation"
 	"github.com/larisgo/framework/Foundation"
+	"github.com/larisgo/framework/Foundation/Bootstrap"
 	"github.com/larisgo/framework/Http"
 	"github.com/larisgo/framework/Routing"
 	"net/http"
 	"runtime"
 )
 
+type bootstrap interface {
+	Bootstrap(ContractsFoundation.Application)
+}
+
 type Kernel struct {
-	App    *Foundation.Application `inject:"app"`
-	Router *Routing.Router         `inject:"router"`
+	App           *Foundation.Application `inject:"app"`
+	Router        *Routing.Router         `inject:"router"`
+	bootstrappers []bootstrap
 }
 
 func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kernel) {
@@ -20,11 +27,22 @@ func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kerne
 	this.App = app
 	this.Router = router
 
+	this.bootstrappers = []bootstrap{
+		// &Bootstrap.LoadEnvironmentVariables{},
+		// &Bootstrap.LoadConfiguration{},
+		// &Bootstrap.HandleExceptions{},
+		&Bootstrap.RegisterFacades{},
+		&Bootstrap.RegisterProviders{},
+		&Bootstrap.BootProviders{},
+	}
+
 	return this
 }
 
 func (this *Kernel) Bootstrap() {
-
+	if !this.App.HasBeenBootstrapped() {
+		this.App.BootstrapWith(this.bootstrappers())
+	}
 }
 
 func (this *Kernel) Handle() {
@@ -46,7 +64,7 @@ func (this *Kernel) SendRequestThroughRouter(request *Http.Request) {
  */
 // func (this *Kernel) dispatchToRouter() {
 // 	return func(request *Http.Request) {
-// 		// $this->App->instance('request', $request);
+// 		// this.App.instance('request', request);
 // 		return this.Router.Dispatch(request)
 // 	}
 // }
