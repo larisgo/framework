@@ -11,14 +11,14 @@ import (
 )
 
 type Kernel struct {
-	app    *Foundation.Application `inject:app`
-	router *Routing.Router         `inject:router`
+	App    *Foundation.Application `inject:"app"`
+	Router *Routing.Router         `inject:"router"`
 }
 
 func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kernel) {
 	this = &Kernel{}
-	this.app = app
-	this.router = router
+	this.App = app
+	this.Router = router
 
 	return this
 }
@@ -28,12 +28,13 @@ func (this *Kernel) Bootstrap() {
 }
 
 func (this *Kernel) Handle() {
+	fmt.Println(`Larisgo development server started: <http://127.0.0.1:8000>`)
 	panic(http.ListenAndServe("127.0.0.1:8000", this))
 	// http.ListenAndServeTLS(addr, certFile, keyFile, this)
 }
 
 func (this *Kernel) SendRequestThroughRouter(request *Http.Request) {
-	this.router.Dispatch(request).Send()
+	this.Router.Dispatch(request).Send()
 	// request.Error(fasthttp.StatusMessage(fasthttp.StatusNotFound),
 	// fasthttp.StatusNotFound)
 }
@@ -45,8 +46,8 @@ func (this *Kernel) SendRequestThroughRouter(request *Http.Request) {
  */
 // func (this *Kernel) dispatchToRouter() {
 // 	return func(request *Http.Request) {
-// 		// $this->app->instance('request', $request);
-// 		return this.router.Dispatch(request)
+// 		// $this->App->instance('request', $request);
+// 		return this.Router.Dispatch(request)
 // 	}
 // }
 
@@ -85,7 +86,7 @@ func (this *Kernel) ServeHTTP(response http.ResponseWriter, request *http.Reques
 			// }
 		}
 	}()
-	this.SendRequestThroughRouter(Http.NewRequest(this.app, response, request))
+	this.SendRequestThroughRouter(Http.NewRequest(this.App, response, request))
 }
 
 /**
@@ -95,10 +96,10 @@ func (this *Kernel) ServeHTTP(response http.ResponseWriter, request *http.Reques
  * @param  Http\Response  response
  * @return void
  */
-func (this *Kernel) Terminate(request *Http.Request, response *Http.Response) {
-	this.app.Terminate()
+func (this *Kernel) Terminate() {
+	this.App.Terminate()
 }
 
 func (this *Kernel) GetApplication() *Foundation.Application {
-	return this.app
+	return this.App
 }

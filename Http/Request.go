@@ -3,8 +3,8 @@ package Http
 import (
 	"context"
 	"fmt"
+	"github.com/larisgo/framework/Contracts/Foundation"
 	"github.com/larisgo/framework/Errors"
-	"github.com/larisgo/framework/Foundation"
 	"github.com/larisgo/framework/Http/HttpFoundation"
 	"github.com/larisgo/framework/Support"
 	"net/http"
@@ -14,7 +14,7 @@ import (
 )
 
 type Request struct {
-	App *Foundation.Application
+	App Foundation.Application
 
 	request  *http.Request
 	response http.ResponseWriter
@@ -32,7 +32,7 @@ type Request struct {
 	contextCancel context.CancelFunc
 }
 
-func NewRequest(app *Foundation.Application, response http.ResponseWriter, request *http.Request) (this *Request) {
+func NewRequest(app Foundation.Application, response http.ResponseWriter, request *http.Request) (this *Request) {
 	// 解析POST
 	this = &Request{App: app, request: request, response: response}
 	this.Query = HttpFoundation.NewParameterBag(request.URL.Query())

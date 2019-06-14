@@ -1,21 +1,82 @@
 package Foundation
 
 import (
+	"fmt"
 	"github.com/larisgo/framework/Container"
+	"github.com/larisgo/framework/Errors"
+	"github.com/larisgo/framework/Providers"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 )
 
 const VERSION = "1.0.0"
 
+type register interface {
+	Register()
+}
+type boot interface {
+	Boot()
+}
+type bindings interface {
+	Bindings() map[string]interface{}
+}
+type singletons interface {
+	Singletons() map[string]interface{}
+}
+
 type Application struct {
+	*Container.Container
+
 	/**
 	 * the larisgo framework version.
 	 *
 	 * @var string
 	 */
 	version string
+
+	/**
+	 * The array of booting callbacks.
+	 *
+	 * @var callable[]
+	 */
+	bootingCallbacks []func(interface{})
+
+	/**
+	 * The array of booted callbacks.
+	 *
+	 * @var callable[]
+	 */
+	bootedCallbacks []func(interface{})
+
+	/**
+	 * The array of terminating callbacks.
+	 *
+	 * @var callable[]
+	 */
+	terminatingCallbacks []interface{}
+
+	/**
+	 * All of the registered service providers.
+	 *
+	 * @var ServiceProvider[]
+	 */
+	serviceProviders []interface{}
+
+	/**
+	 * The names of the loaded service providers.
+	 *
+	 * @var array
+	 */
+	loadedProviders map[string]bool
+
+	/**
+	 * The deferred services and their providers.
+	 *
+	 * @var array
+	 */
+	deferredServices []interface{}
 
 	/**
 	 * The base path for the larisgo installation.
@@ -31,7 +92,33 @@ type Application struct {
 	 */
 	appPath string
 
-	*Container.Container
+	/**
+	 * Indicates if the application has "booted".
+	 *
+	 * @var bool
+	 */
+	booted bool `default:false`
+}
+
+func NewApplication(basePath string) (this *Application) {
+
+	this = &Application{Container: Container.NewContainer()}
+
+	this.version = VERSION
+	this.bootingCallbacks = []func(interface{}){}
+	this.bootedCallbacks = []func(interface{}){}
+	this.terminatingCallbacks = []interface{}{}
+	this.serviceProviders = []interface{}{}
+	this.loadedProviders = map[string]bool{}
+	this.deferredServices = []interface{}{}
+
+	if basePath != "" {
+		this.SetBasePath(basePath)
+	}
+	this.registerBaseBindings()
+	this.registerBaseServiceProviders()
+
+	return this
 }
 
 /**
@@ -43,24 +130,222 @@ func (this *Application) Version() string {
 	return this.version
 }
 
-func NewApplication(basePath string) (this *Application) {
+/**
+ * Register the basic bindings into the container.
+ *
+ * @return void
+ */
+func (this *Application) registerBaseBindings() {
+	// this.SetInstance(this)
 
-	this = &Application{}
+	this.Instance("app", this)
 
-	this.version = VERSION
+	this.Instance("container", this)
 
-	if basePath != "" {
-		this.SetBasePath(basePath)
+	// this.instance(PackageManifest::class, new PackageManifest(
+	// new Filesystem, this.basePath(), this.getCachedPackagesPath()
+	// ));
+}
+
+/**
+ * Register all of the base service providers.
+ *
+ * @return void
+ */
+func (this *Application) registerBaseServiceProviders() {
+	this.Register(Providers.NewRoutingServiceProvider(this))
+}
+
+/**
+ * Get the registered service provider instance if it exists.
+ *
+ * @param  ServiceProvider|string  provider
+ * @return ServiceProvider|null
+ */
+func (this *Application) GetProvider(provider interface{}) interface{} {
+	if provider := this.GetProviders(provider); len(provider) > 0 {
+		return provider[0]
+	}
+	return nil
+}
+
+/**
+ * Get the registered service provider instances if any exist.
+ *
+ * @param  ServiceProvider|string  provider
+ * @return array
+ */
+func (this *Application) GetProviders(provider interface{}) []interface{} {
+	_tmp := []interface{}{}
+	for _, v := range this.serviceProviders {
+		if reflect.TypeOf(v).String() == reflect.TypeOf(provider).String() {
+			_tmp = append(_tmp, v)
+		}
+	}
+	return _tmp
+}
+
+/**
+ * Mark the given provider as registered.
+ *
+ * @param  ServiceProvider  provider
+ * @return void
+ */
+func (this *Application) markAsRegistered(provider interface{}) {
+	this.serviceProviders = append(this.serviceProviders, provider)
+
+	this.loadedProviders[reflect.TypeOf(provider).String()] = true
+}
+
+/**
+ * Boot the given service provider.
+ *
+ * @param  ServiceProvider  provider
+ * @return mixed
+ */
+func (this *Application) bootProvider(provider interface{}) {
+	if p, ok := provider.(boot); ok {
+		p.Boot()
+	}
+}
+
+/**
+ * Register a new boot listener.
+ *
+ * @param  callable  callback
+ * @return void
+ */
+func (this *Application) Booting(callback func(interface{})) {
+	this.bootingCallbacks = append(this.bootingCallbacks, callback)
+}
+
+/**
+ * Register a new "booted" listener.
+ *
+ * @param  callable  callback
+ * @return void
+ */
+func (this *Application) Booted(callback func(interface{})) {
+	this.bootedCallbacks = append(this.bootedCallbacks, callback)
+
+	if this.IsBooted() {
+		this.fireAppCallbacks([]func(interface{}){callback})
+	}
+}
+
+/**
+ * Determine if the application has booted.
+ *
+ * @return bool
+ */
+func (this *Application) IsBooted() bool {
+	return this.booted
+}
+
+/**
+ * Boot the application's service providers.
+ *
+ * @return void
+ */
+func (this *Application) Boot() {
+	if this.booted {
+		return
 	}
 
-	return this
+	// Once the application has booted we will also fire some "booted" callbacks
+	// for any listeners that need to do work after this initial booting gets
+	// finished. This is useful when ordering the boot-up processes we run.
+	this.fireAppCallbacks(this.bootingCallbacks)
+
+	// array_walk(this.serviceProviders, function (p) {
+	//     this.bootProvider(p);
+	// });
+
+	this.booted = true
+
+	this.fireAppCallbacks(this.bootedCallbacks)
+}
+
+/**
+ * Call the booting callbacks for the application.
+ *
+ * @param  callable[]  callbacks
+ * @return void
+ */
+func (this *Application) fireAppCallbacks(callbacks []func(interface{})) {
+	for _, callback := range callbacks {
+		callback(this)
+	}
+}
+
+/**
+ * Register a service provider with the application.
+ *
+ * @param  ServiceProvider|string  provider
+ * @param  bool   force
+ * @return ServiceProvider
+ */
+func (this *Application) Register(provider interface{}, force ...bool) interface{} {
+	force = append(force, false)
+
+	_provider := reflect.TypeOf(provider)
+	if T := _provider.Kind(); T != reflect.Ptr {
+		if T != reflect.Struct {
+			panic(Errors.NewRuntimeException(fmt.Sprintf(`Provider is a [%s] is not a struct.`, _provider.String())))
+		}
+	} else {
+		if T := _provider.Elem().Kind(); T != reflect.Struct {
+			panic(Errors.NewRuntimeException(fmt.Sprintf(`Provider is a [%s] is not a struct.`, _provider.String())))
+		}
+	}
+
+	if registered := this.GetProvider(provider); registered != nil && !force[0] {
+		return registered
+	}
+
+	// If the given "provider" is a string, we will resolve it, passing in the
+	// application instance automatically for the developer. This is simply
+	// a more convenient way of specifying your service provider classes.
+	// if is_string(provider) {
+	// 	provider = this.resolveProvider(provider)
+	// }
+
+	if p, ok := provider.(register); ok {
+		p.Register()
+	}
+
+	// If there are bindings / singletons set as properties on the provider we
+	// will spin through them and register them with the application, which
+	// serves as a convenience layer while registering a lot of bindings.
+	if p, ok := provider.(bindings); ok {
+		for key, value := range p.Bindings() {
+			this.Bind(key, value)
+		}
+	}
+
+	if p, ok := provider.(singletons); ok {
+		for key, value := range p.Singletons() {
+			this.Singleton(key, value)
+		}
+	}
+
+	this.markAsRegistered(provider)
+
+	// If the application has already booted, we will call this boot method on
+	// the provider class so it has an opportunity to do its boot logic and
+	// will be ready for any usage by this developer's application logic.
+	if this.booted {
+		this.bootProvider(provider)
+	}
+
+	return provider
 }
 
 /**
  * Set the base path for the application.
  *
  * @param  string  basePath
- * @return $this
+ * @return this
  */
 func (this *Application) SetBasePath(basePath string) *Application {
 	this.basePath = strings.TrimRight(basePath, `\/`)
@@ -156,7 +441,7 @@ func (this *Application) DatabasePath(_path ...string) string {
  * @return void
  */
 func (this *Application) Terminate() {
-	// foreach (this.terminatingCallbacks as $terminating) {
-	//     $this->call($terminating);
+	// foreach (this.terminatingCallbacks as terminating) {
+	//     this.call(terminating);
 	// }
 }

@@ -2,6 +2,7 @@ package Routing
 
 import (
 	"fmt"
+	"github.com/larisgo/framework/Contracts/Container"
 	"github.com/larisgo/framework/Http"
 	"strings"
 )
@@ -16,8 +17,11 @@ type Action func(*Http.Request) *Http.Response
 var Verbs map[string]bool = map[string]bool{"GET": true, "HEAD": true, "POST": true, "PUT": true, "PATCH": true, "DELETE": true, "OPTIONS": true}
 
 type Router struct {
-	routes           *RouteCollection
-	current          *Route
+	routes  *RouteCollection
+	current *Route
+
+	container Container.Container
+
 	middleware       map[string]interface{}
 	middlewareGroups map[string]interface{}
 
@@ -45,8 +49,9 @@ type Router struct {
 	groupStack []map[string]string
 }
 
-func NewRouter() (this *Router) {
+func NewRouter(container Container.Container) (this *Router) {
 	this = &Router{}
+	this.container = container
 	this.routes = NewRouteCollection()
 	this.patterns = map[string]string{}
 	this.groupStack = []map[string]string{}

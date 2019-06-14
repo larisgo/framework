@@ -2,7 +2,6 @@ package Http
 
 import (
 	"github.com/larisgo/framework/Foundation"
-	"github.com/larisgo/framework/Http"
 )
 
 type Kernel interface {
@@ -29,7 +28,7 @@ type Kernel interface {
 	 * @param  Response  response
 	 * @return void
 	 */
-	Terminate(*Http.Request, *Http.Response)
+	Terminate()
 
 	/**
 	 * Get the Laravel application instance.
