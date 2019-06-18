@@ -95,7 +95,7 @@ func (this *Kernel) ServeHTTP(response http.ResponseWriter, request *http.Reques
 			// 	fmt.Printf("%+v\n%s\n", e.GetMessage(), string(buf[:n]))
 			// 	fmt.Fprintf(response, "%+v\n%s\n", e.GetMessage(), string(buf[:n]))
 			// } else {
-			fmt.Printf("%+v\n%s\n", err, string(buf[:n]))
+			// fmt.Printf("%+v\n%s\n", err, string(buf[:n]))
 			fmt.Fprintf(response, "%+v\n%s\n", err, string(buf[:n]))
 			// }
 		}
