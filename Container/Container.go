@@ -7,10 +7,10 @@ import (
 	"reflect"
 )
 
-type closure func(ContainerInterface.Container, interface{})
-type extender func(interface{}, ContainerInterface.Container) interface{}
+type closureT func(ContainerInterface.Container, interface{})
+type extenderT func(interface{}, ContainerInterface.Container) interface{}
 
-type Bindings struct {
+type BindingsT struct {
 	Concrete func(ContainerInterface.Container) interface{}
 	Shared   bool
 }
@@ -28,7 +28,7 @@ type Container struct {
 	/**
 	 * The current globally available container (if any).
 	 */
-	bindings map[string]*Bindings
+	bindings map[string]*BindingsT
 
 	/**
 	 * The container's method bindings.
@@ -63,7 +63,7 @@ type Container struct {
 	 *
 	 * @var array
 	 */
-	extenders map[string][]extender
+	extenders map[string][]extenderT
 
 	/**
 	 * All of the registered tags.
@@ -77,7 +77,7 @@ type Container struct {
 	 *
 	 * @var array
 	 */
-	reboundCallbacks map[string][]closure
+	reboundCallbacks map[string][]closureT
 
 	/**
 	 * All of the global resolving callbacks.
@@ -112,14 +112,14 @@ func NewContainer() (this *Container) {
 	this = &Container{}
 
 	this.resolved = map[string]bool{}
-	this.bindings = map[string]*Bindings{}
+	this.bindings = map[string]*BindingsT{}
 	this.methodBindings = map[string]interface{}{}
 	this.instances = map[string]interface{}{}
 	this.aliases = map[string]string{}
 	this.abstractAliases = map[string]map[string]string{}
-	this.extenders = map[string][]extender{}
+	this.extenders = map[string][]extenderT{}
 	this.tags = map[string]interface{}{}
-	this.reboundCallbacks = map[string][]closure{}
+	this.reboundCallbacks = map[string][]closureT{}
 	this.globalResolvingCallbacks = map[string]interface{}{}
 	this.globalAfterResolvingCallbacks = map[string]interface{}{}
 	this.resolvingCallbacks = map[string]interface{}{}
@@ -240,7 +240,7 @@ func (this *Container) Bind(abstract string, concrete interface{}, shared ...boo
 		Concrete = concrete.(func(ContainerInterface.Container) interface{})
 	}
 
-	this.bindings[abstract] = &Bindings{
+	this.bindings[abstract] = &BindingsT{
 		Concrete: Concrete,
 		Shared:   shared[0],
 	}
@@ -285,12 +285,12 @@ func (this *Container) rebound(abstract string) {
  * @param  string  abstract
  * @return array
  */
-func (this *Container) getReboundCallbacks(abstract string) []closure {
+func (this *Container) getReboundCallbacks(abstract string) []closureT {
 	if v, ok := this.reboundCallbacks[abstract]; ok {
 		return v
 	}
 
-	return []closure{}
+	return []closureT{}
 }
 
 /**
@@ -328,14 +328,14 @@ func (this *Container) getConcrete(abstract string) interface{} {
  * @param  string  abstract
  * @return array
  */
-func (this *Container) getExtenders(abstract string) []extender {
+func (this *Container) getExtenders(abstract string) []extenderT {
 	abstract = this.GetAlias(abstract)
 
 	if extenderAbstract, ok := this.extenders[abstract]; ok {
 		return extenderAbstract
 	}
 
-	return []extender{}
+	return []extenderT{}
 }
 
 /**
@@ -347,7 +347,7 @@ func (this *Container) getExtenders(abstract string) []extender {
  *
  * @throws \InvalidArgumentException
  */
-func (this *Container) Extend(abstract string, closure extender) {
+func (this *Container) Extend(abstract string, closure extenderT) {
 	abstract = this.GetAlias(abstract)
 
 	if instancesAbstract, ok := this.instances[abstract]; ok {

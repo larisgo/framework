@@ -12,18 +12,28 @@ func NewRouteGroup() *RouteGroup {
 }
 
 func (this *RouteGroup) Merge(_new map[string]string, _old map[string]string) map[string]string {
-	if _, ok := _new["domain"]; ok {
-		delete(_old, "domain")
+	_ntmp := this.clone(_new)
+	_otmp := this.clone(_old)
+	if _, ok := _ntmp["domain"]; ok {
+		delete(_otmp, "domain")
 	}
-	_new = this.formatAs(_new, _old)
-	_new["prefix"] = this.formatPrefix(_new, _old)
+	_ntmp = this.formatAs(_ntmp, _otmp)
+	_ntmp["prefix"] = this.formatPrefix(_ntmp, _otmp)
 
-	delete(_old, "prefix")
-	delete(_old, "as")
-	for k, v := range _new {
-		_old[k] = v
+	delete(_otmp, "prefix")
+	delete(_otmp, "as")
+	for k, v := range _ntmp {
+		_otmp[k] = v
 	}
-	return _old
+	return _otmp
+}
+
+func (this *RouteGroup) clone(value map[string]string) (data map[string]string) {
+	data = map[string]string{}
+	for k, v := range value {
+		data[k] = v
+	}
+	return data
 }
 
 /**

@@ -3,6 +3,9 @@ package Foundation
 import (
 	"fmt"
 	"github.com/larisgo/framework/Container"
+	RepositoryContract "github.com/larisgo/framework/Contracts/Config"
+	FoundationContract "github.com/larisgo/framework/Contracts/Foundation"
+	"github.com/larisgo/framework/Contracts/Service"
 	"github.com/larisgo/framework/Errors"
 	"github.com/larisgo/framework/Providers"
 	"path"
@@ -12,19 +15,6 @@ import (
 )
 
 const VERSION = "1.0.0"
-
-type register interface {
-	Register()
-}
-type boot interface {
-	Boot()
-}
-type bindings interface {
-	Bindings() map[string]interface{}
-}
-type singletons interface {
-	Singletons() map[string]interface{}
-}
 
 type Application struct {
 	*Container.Container
@@ -98,6 +88,13 @@ type Application struct {
 	 * @var bool
 	 */
 	booted bool `default:false`
+
+	/**
+	 * Indicates if the application has been bootstrapped before.
+	 *
+	 * @var bool
+	 */
+	hasBeenBootstrapped bool `default:false`
 }
 
 func NewApplication(basePath string) (this *Application) {
@@ -131,7 +128,7 @@ func (this *Application) Version() string {
 }
 
 /**
- * Register the basic bindings into the container.
+ * Register the basic bindingsT into the container.
  *
  * @return void
  */
@@ -154,6 +151,22 @@ func (this *Application) registerBaseBindings() {
  */
 func (this *Application) registerBaseServiceProviders() {
 	this.Register(Providers.NewRoutingServiceProvider(this))
+}
+
+/**
+ * Run the given array of bootstrap classes.
+ *
+ * @param  string[]  bootstrappers
+ * @return void
+ */
+func (this *Application) BootstrapWith(bootstrappers []FoundationContract.BootstrapT) {
+	this.hasBeenBootstrapped = true
+
+	for _, bootstrapper := range bootstrappers {
+		// this['events'].dispatch('bootstrapping: '.bootstrapper, [this]);
+		bootstrapper.Bootstrap(this)
+		// this['events'].dispatch('bootstrapped: '.bootstrapper, [this]);
+	}
 }
 
 /**
@@ -204,7 +217,7 @@ func (this *Application) markAsRegistered(provider interface{}) {
  * @return mixed
  */
 func (this *Application) bootProvider(provider interface{}) {
-	if p, ok := provider.(boot); ok {
+	if p, ok := provider.(Service.BootT); ok {
 		p.Boot()
 	}
 }
@@ -257,9 +270,9 @@ func (this *Application) Boot() {
 	// finished. This is useful when ordering the boot-up processes we run.
 	this.fireAppCallbacks(this.bootingCallbacks)
 
-	// array_walk(this.serviceProviders, function (p) {
-	//     this.bootProvider(p);
-	// });
+	for _, p := range this.serviceProviders {
+		this.bootProvider(p)
+	}
 
 	this.booted = true
 
@@ -279,6 +292,17 @@ func (this *Application) fireAppCallbacks(callbacks []func(interface{})) {
 }
 
 /**
+ * Register all of the configured providers.
+ *
+ * @return void
+ */
+func (this *Application) RegisterConfiguredProviders() {
+	for _, instance := range this.Make("config").(RepositoryContract.Repository).Get("app.providers").([]Service.Provider) {
+		this.Register(this.Build(instance, reflect.TypeOf(instance).String()))
+	}
+}
+
+/**
  * Register a service provider with the application.
  *
  * @param  ServiceProvider|string  provider
@@ -287,7 +311,6 @@ func (this *Application) fireAppCallbacks(callbacks []func(interface{})) {
  */
 func (this *Application) Register(provider interface{}, force ...bool) interface{} {
 	force = append(force, false)
-
 	_provider := reflect.TypeOf(provider)
 	if T := _provider.Kind(); T != reflect.Ptr {
 		if T != reflect.Struct {
@@ -310,20 +333,20 @@ func (this *Application) Register(provider interface{}, force ...bool) interface
 	// 	provider = this.resolveProvider(provider)
 	// }
 
-	if p, ok := provider.(register); ok {
+	if p, ok := provider.(Service.RegisterT); ok {
 		p.Register()
 	}
 
-	// If there are bindings / singletons set as properties on the provider we
+	// If there are bindingsT / singletonsT set as properties on the provider we
 	// will spin through them and register them with the application, which
-	// serves as a convenience layer while registering a lot of bindings.
-	if p, ok := provider.(bindings); ok {
+	// serves as a convenience layer while registering a lot of bindingsT.
+	if p, ok := provider.(Service.BindingsT); ok {
 		for key, value := range p.Bindings() {
 			this.Bind(key, value)
 		}
 	}
 
-	if p, ok := provider.(singletons); ok {
+	if p, ok := provider.(Service.SingletonsT); ok {
 		for key, value := range p.Singletons() {
 			this.Singleton(key, value)
 		}
@@ -339,6 +362,15 @@ func (this *Application) Register(provider interface{}, force ...bool) interface
 	}
 
 	return provider
+}
+
+/**
+ * Determine if the application has been bootstrapped before.
+ *
+ * @return bool
+ */
+func (this *Application) HasBeenBootstrapped() bool {
+	return this.hasBeenBootstrapped
 }
 
 /**

@@ -26,14 +26,7 @@ func (this *RouteServiceProvider) Register() {
  * @return void
  */
 func (this *RouteServiceProvider) Boot() {
-	// if (this.App.routesAreCached()) {
-	//     this.loadCachedRoutes();
-	// } else {
-	// this.loadRoutes()
-	// Facades.Route()
 	this.App.Booted(func(app interface{}) {
 		this.App.Make("router").(*Routing.Router).GetRoutes().RefreshNameLookups()
-		// this.App.Make("router").(*Routing.Router).GetRoutes().RefreshActionLookups()
 	})
-	// }
 }

@@ -2,7 +2,6 @@ package Facades
 
 import (
 	"github.com/larisgo/framework/Contracts/Foundation"
-	"reflect"
 )
 
 var App Foundation.Application
@@ -68,10 +67,6 @@ func SetFacadeApplication(app Foundation.Application) {
 	App = app
 }
 
-func (this *Facade) GetRaw() interface{} {
+func (this *Facade) Get() interface{} {
 	return this.resolveFacadeInstance(this.facadeaccessor)
-}
-
-func (this *Facade) Get() reflect.Value {
-	return reflect.ValueOf(this.resolveFacadeInstance(this.facadeaccessor))
 }

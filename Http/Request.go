@@ -243,5 +243,5 @@ func (this *Request) UserAgent() string {
  * @return bool
  */
 func (this *Request) IsJson() bool {
-	return Support.Str().Contains([]string{"/json", "+json"}, this.Headers.Get("Content-Type"))
+	return Support.Str().Contains(this.Headers.Get("Content-Type"), []string{"/json", "+json"})
 }

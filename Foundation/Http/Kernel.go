@@ -3,7 +3,7 @@ package Http
 import (
 	"fmt"
 	// "github.com/larisgo/framework/Errors"
-	ContractsFoundation "github.com/larisgo/framework/Contracts/Foundation"
+	FoundationContract "github.com/larisgo/framework/Contracts/Foundation"
 	"github.com/larisgo/framework/Foundation"
 	"github.com/larisgo/framework/Foundation/Bootstrap"
 	"github.com/larisgo/framework/Http"
@@ -12,24 +12,18 @@ import (
 	"runtime"
 )
 
-type bootstrap interface {
-	Bootstrap(ContractsFoundation.Application)
-}
-
 type Kernel struct {
 	App           *Foundation.Application `inject:"app"`
 	Router        *Routing.Router         `inject:"router"`
-	bootstrappers []bootstrap
+	bootstrappers []FoundationContract.BootstrapT
 }
 
-func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kernel) {
+func NewKernel() (this *Kernel) {
 	this = &Kernel{}
-	this.App = app
-	this.Router = router
 
-	this.bootstrappers = []bootstrap{
+	this.bootstrappers = []FoundationContract.BootstrapT{
 		// &Bootstrap.LoadEnvironmentVariables{},
-		// &Bootstrap.LoadConfiguration{},
+		&Bootstrap.LoadConfiguration{},
 		// &Bootstrap.HandleExceptions{},
 		&Bootstrap.RegisterFacades{},
 		&Bootstrap.RegisterProviders{},
@@ -41,11 +35,13 @@ func NewKernel(app *Foundation.Application, router *Routing.Router) (this *Kerne
 
 func (this *Kernel) Bootstrap() {
 	if !this.App.HasBeenBootstrapped() {
-		this.App.BootstrapWith(this.bootstrappers())
+		this.App.BootstrapWith(this.bootstrappers)
 	}
 }
 
 func (this *Kernel) Handle() {
+	this.Bootstrap()
+
 	fmt.Println(`Larisgo development server started: <http://127.0.0.1:8000>`)
 	panic(http.ListenAndServe("127.0.0.1:8000", this))
 	// http.ListenAndServeTLS(addr, certFile, keyFile, this)

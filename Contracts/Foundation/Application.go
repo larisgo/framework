@@ -98,6 +98,8 @@ type Application interface {
 	 */
 	Booted(func(interface{}))
 
+	RegisterConfiguredProviders()
+
 	/**
 	 * Get the path to the cached services.php file.
 	 *

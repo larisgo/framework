@@ -8,5 +8,5 @@ type RegisterProviders struct {
 }
 
 func (this *RegisterProviders) Bootstrap(app Foundation.Application) {
-	// app.RegisterConfiguredProviders()
+	app.RegisterConfiguredProviders()
 }

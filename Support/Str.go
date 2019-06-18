@@ -7,15 +7,13 @@ import (
 )
 
 type str struct {
-	_str        string
 	snakeCache  []string
 	camelCache  []string
 	studlyCache []string
 }
 
-func Str(_str ...string) *str {
-	_str = append(_str, "")
-	return &str{_str: _str[0]}
+var Str func() *str = func() *str {
+	return &str{}
 }
 
 /**
@@ -25,16 +23,15 @@ func Str(_str ...string) *str {
  * @param  string  value
  * @return bool
  */
-func (this *str) Is(patterns []string, value ...string) bool {
-	value = append(value, this._str)
+func (this *str) Is(value string, patterns []string) bool {
 	if len(patterns) == 0 {
 		return false
 	}
 	for _, pattern := range patterns {
-		if pattern == value[0] {
+		if pattern == value {
 			return true
 		}
-		return regexp.MustCompile(fmt.Sprintf(`^%s\z`, strings.ReplaceAll(regexp.QuoteMeta(pattern), `\*`, `.*`))).MatchString(value[0])
+		return regexp.MustCompile(fmt.Sprintf(`^%s\z`, strings.ReplaceAll(regexp.QuoteMeta(pattern), `\*`, `.*`))).MatchString(value)
 	}
 	return false
 }
@@ -45,9 +42,8 @@ func (this *str) Is(patterns []string, value ...string) bool {
  * @param  string  value
  * @return int
  */
-func (this *str) Length(value ...string) int {
-	value = append(value, this._str)
-	return len([]rune(value[0]))
+func (this *str) Length(value string) int {
+	return len([]rune(value))
 }
 
 /**
@@ -57,11 +53,10 @@ func (this *str) Length(value ...string) int {
  * @param  string  haystack
  * @return bool
  */
-func (this *str) Contains(needles []string, haystack ...string) bool {
-	haystack = append(haystack, this._str)
+func (this *str) Contains(haystack string, needles []string) bool {
 
 	for _, needle := range needles {
-		if needle != "" && strings.Index(haystack[0], needle) > 0 {
+		if needle != "" && strings.Index(haystack, needle) > 0 {
 			return true
 		}
 	}

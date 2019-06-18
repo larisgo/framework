@@ -351,7 +351,7 @@ func (this *Route) Named(patterns ...string) bool {
 	}
 
 	for _, pattern := range patterns {
-		if Support.Str(routeName).Is([]string{pattern}) {
+		if Support.Str().Is(routeName, []string{pattern}) {
 			return true
 		}
 	}

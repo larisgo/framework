@@ -1,6 +1,8 @@
 package Container
 
 type Container interface {
+	Instance(string, interface{}) interface{}
+
 	Singleton(string, interface{})
 
 	Bind(string, interface{}, ...bool)

@@ -148,7 +148,6 @@ func (this *Router) updateGroupStack(attributes map[string]string) {
 	if len(this.groupStack) > 0 {
 		attributes = this.MergeWithLastGroup(attributes)
 	}
-
 	this.groupStack = append(this.groupStack, attributes)
 }
 
