@@ -136,11 +136,12 @@ func (this *Response) Prepare(request *Request) *Response {
  * @return $this
  */
 func (this *Response) SetContent(content interface{}) *Response {
+	this.Header("Content-Type", "text/html; charset=UTF-8")
 	// If the content is "JSONable" we will set the appropriate header and convert
 	// the content to JSON. This is useful when returning something like models
 	// from routes that will be automatically transformed to their JSON form.
 	if this.shouldBeJson(content) {
-		this.Header("Content-Type", "application/json")
+		this.Header("Content-Type", "application/json; charset=UTF-8")
 
 		if data, err := this.morphToJson(content); err != nil {
 			panic(err)

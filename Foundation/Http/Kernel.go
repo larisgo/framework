@@ -9,7 +9,6 @@ import (
 	"github.com/larisgo/framework/Http"
 	"github.com/larisgo/framework/Routing"
 	"net/http"
-	"runtime"
 )
 
 type Kernel struct {
@@ -42,7 +41,7 @@ func (this *Kernel) Bootstrap() {
 func (this *Kernel) Handle() {
 	this.Bootstrap()
 
-	fmt.Println(`Larisgo development server started: <http://127.0.0.1:8000>`)
+	fmt.Println(`development server started: <http://127.0.0.1:8000>`)
 	panic(http.ListenAndServe("127.0.0.1:8000", this))
 	// http.ListenAndServeTLS(addr, certFile, keyFile, this)
 }
@@ -89,14 +88,14 @@ func (this *Kernel) ServeFile(uri string, root string) {
 func (this *Kernel) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	defer func() {
 		if err := recover(); err != nil {
-			var buf [4096]byte
-			n := runtime.Stack(buf[:], false)
+			// var buf [4096]byte
+			// n := runtime.Stack(buf[:], false)
 			// if e, ok := err.(Errors.Exception); ok {
 			// 	fmt.Printf("%+v\n%s\n", e.GetMessage(), string(buf[:n]))
 			// 	fmt.Fprintf(response, "%+v\n%s\n", e.GetMessage(), string(buf[:n]))
 			// } else {
 			// fmt.Printf("%+v\n%s\n", err, string(buf[:n]))
-			fmt.Fprintf(response, "%+v\n%s\n", err, string(buf[:n]))
+			fmt.Fprintf(response, "%+v\n", err)
 			// }
 		}
 	}()
